@@ -10,7 +10,7 @@ size = width, height = 1000, 600
 black = 0, 0, 0
 
 maxVelocity = 5
-numBoids = 20
+numBoids = 1
 boids = []
 
 
@@ -55,8 +55,8 @@ class Boid:
         # set our velocity towards the others
         distance = math.sqrt((avgX * avgX) + (avgY * avgY)) * -1.0
        
-        self.velocityX -= (avgX / 100)
-        self.velocityY -= (avgY / 100)
+        self.velocityX -= (avgX / 100.0)
+        self.velocityY -= (avgY / 100.0)
        #self.velocityX -= avgX
        #self.velocityY -= avgY
         
@@ -75,8 +75,8 @@ class Boid:
         avgY /= len(boids)
 
         # set our velocity towards the others
-        self.velocityX += (avgX / 40)
-        self.velocityY += (avgY / 40)
+        self.velocityX += (avgX / 8)
+        self.velocityY += (avgY / 8)
     
     "Move away from a set of boids. This avoids crowding"
     def moveAway(self, boids, minDistance):
@@ -142,7 +142,7 @@ while 1:
         
         boid.moveCloser(closeBoids)
         boid.moveWith(closeBoids)  
-        boid.moveAway(closeBoids, 20)
+        boid.moveAway(closeBoids, 30)
 
         # ensure they stay within the screen space
         # if we roubound we can lose some of our velocity
