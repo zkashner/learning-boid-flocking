@@ -10,18 +10,14 @@ size = width, height = 1000, 600
 black = 0, 0, 0
 white = 255, 255, 255
 
-maxVelocity = 5
-numBoids = 1
+maxVelocity = 4
+numBoids = 20
 boids = []
 
+leader_exists = False
 
-class LeadBoid:
-    def __init__(self, x, y):
-        self.x = x
-        self.y = y
-        self.velocityX = random.randint(1, 10) / 10.0
-        self.velocityY = random.randint(1, 10) / 10.0
-
+if leader_exists:
+    numBoids += 1
 
 class Boid:
     def __init__(self, x, y):
@@ -61,7 +57,7 @@ class Boid:
         
     "Move with a set of boids"
     def moveWith(self, boids):
-        if len(boids) < 1: return
+        if len(boids) == 0: return
         # calculate the average velocities of the other boids
         avgX = 0
         avgY = 0
@@ -117,14 +113,51 @@ class Boid:
         self.x += self.velocityX
         self.y += self.velocityY
 
+
+class LeadBoid(Boid):
+    def __init__(self, x, y):
+        self.x = x
+        self.y = y
+        self.velocityX = random.randint(1, 10) / 10.0
+        self.velocityY = random.randint(1, 10) / 10.0
+
+    "Move closer to a set of boids"
+    def moveCloser(self, boids):
+        return
+        
+    "Move with a set of boids"
+    def moveWith(self, boids):
+        return
+    
+    "Move away from a set of boids. This avoids crowding"
+    def moveAway(self, boids, minDistance):
+        return
+        
+    "Perform actual movement based on our velocity"
+    def move(self):
+        self.velocityX += random.uniform(-1,1)
+        self.velocityY += random.uniform(-1,1)
+        if self.velocityX**2 + self.velocityY**2 > maxVelocity**2:
+            scaleFactor = maxVelocity / max(abs(self.velocityX), abs(self.velocityY))
+            self.velocityX *= scaleFactor
+            self.velocityY *= scaleFactor
+        
+        self.x += self.velocityX
+        self.y += self.velocityY
+
 screen = pygame.display.set_mode(size)
 
-ball = pygame.image.load("bird.png")
-ballrect = ball.get_rect()
+bird = pygame.image.load("bird.png")
+birdrect = bird.get_rect()
+lead = pygame.image.load("bird1.png")
+leadrect = lead.get_rect()
 
 # create boids at random positions
-for i in range(numBoids):
-    boids.append(Boid(random.randint(0, width), random.randint(0, height)))   
+for i in range(numBoids - 1):
+    boids.append(Boid(random.randint(0, width), random.randint(0, height)))
+
+if leader_exists:
+    boids.append(LeadBoid(random.randint(0, width), random.randint(0, height))) 
 
 while 1:
     for event in pygame.event.get():
@@ -158,10 +191,17 @@ while 1:
         boid.move()
         
     screen.fill(white)
-    for boid in boids:
-        boidRect = pygame.Rect(ballrect)
-        boidRect.x = boid.x
-        boidRect.y = boid.y
-        screen.blit(ball, boidRect)
+    for i in range(len(boids)):
+        boid = boids[i]
+        if leader_exists and i == len(boids) - 1:
+            boidRect = pygame.Rect(leadrect)
+            boidRect.x = boid.x
+            boidRect.y = boid.y
+            screen.blit(lead, boidRect)
+        else:
+            boidRect = pygame.Rect(birdrect)
+            boidRect.x = boid.x
+            boidRect.y = boid.y
+            screen.blit(bird, boidRect)
     pygame.display.flip()
     pygame.time.delay(1)
