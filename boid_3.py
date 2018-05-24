@@ -8,6 +8,7 @@ pygame.init()
 
 size = width, height = 1000, 600
 black = 0, 0, 0
+white = 255, 255, 255
 
 maxVelocity = 5
 numBoids = 1
@@ -57,8 +58,6 @@ class Boid:
        
         self.velocityX -= (avgX / 100.0)
         self.velocityY -= (avgY / 100.0)
-       #self.velocityX -= avgX
-       #self.velocityY -= avgY
         
     "Move with a set of boids"
     def moveWith(self, boids):
@@ -120,7 +119,7 @@ class Boid:
 
 screen = pygame.display.set_mode(size)
 
-ball = pygame.image.load("ball.png")
+ball = pygame.image.load("bird.png")
 ballrect = ball.get_rect()
 
 # create boids at random positions
@@ -158,11 +157,11 @@ while 1:
             
         boid.move()
         
-    screen.fill(black)
+    screen.fill(white)
     for boid in boids:
         boidRect = pygame.Rect(ballrect)
         boidRect.x = boid.x
         boidRect.y = boid.y
         screen.blit(ball, boidRect)
     pygame.display.flip()
-    pygame.time.delay(30)
+    pygame.time.delay(1)
