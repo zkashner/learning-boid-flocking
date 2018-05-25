@@ -160,8 +160,9 @@ class straightLineBoid(Boid):
         self.x = x
         self.y = y
         # move across the screen
-        self.velocityX = 2
-        self.velocityY = 0
+        self.speed = 3
+        self.angle = 0
+        self.direction = [1, 0]
 
     "Move closer to a set of boids"
     def moveCloser(self, boids):
@@ -183,13 +184,50 @@ class straightLineBoid(Boid):
             #scaleFactor = maxVelocity / max(abs(self.velocityX), abs(self.velocityY))
             #self.velocityX *= scaleFactor
             #self.velocityY *= scaleFactor
-        
-        self.x += self.velocityX
-        self.y += self.velocityY
+        self.direction[0] = math.sin(math.radians(self.angle))
+        self.direction[1] = -math.cos(math.radians(self.angle))
+
+        self.x += self.direction[0]*self.speed
+        self.y += self.direction[1]*self.speed
 
         # Try wrap around - may need variable width and hieght
         #self.x = (self.x + width) % width
         #self.y = (self.y + height) % height
+
+class circleBoid(Boid):
+    def __init__(self, x, y):
+        self.x = x
+        self.y = y
+
+        self.speed = 3
+        self.angle = 0.0
+        self.direction = [0, 0]
+
+
+    "Move closer to a set of boids"
+    def moveCloser(self, boids):
+        return
+        
+    "Move with a set of boids"
+    def moveWith(self, boids):
+        return
+    
+    "Move away from a set of boids. This avoids crowding"
+    def moveAway(self, boids, minDistance):
+        return
+        
+    "Perform actual movement based on our velocity"
+    def move(self):
+        # We want to just move at a constant 5 degree angle
+
+        self.angle += 2
+        self.direction[0] = math.sin(-math.radians(self.angle))
+        self.direction[1] = -math.cos(math.radians(self.angle))
+
+        # calculate the position from the direction and speed
+        self.x += self.direction[0]*self.speed
+        self.y += self.direction[1]*self.speed
+
 
 
 screen = pygame.display.set_mode(size)
@@ -206,6 +244,7 @@ for i in range(numBoids - 1):
 if leader_exists:
     #boids.append(LeadBoid(random.randint(0, width), random.randint(0, height))) 
     boids.append(straightLineBoid(30, height / 2.0)) 
+    #boids.append(circleBoid(500, 300))
 
 
 while 1:
