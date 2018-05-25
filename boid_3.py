@@ -278,7 +278,9 @@ def simulate(rl, numTrials=10, maxIterations=1000, verbose=False,
         # We want to start doing the simulation
         # Let us start by placing down a the leader and
         # the learning follower
-        leaderBoid = LeadBoid(random.randint(0, width), random.randint(0, height))
+        leaderBoid = straightLineBoid(45, height / 2.0)
+        # Define the start state for our rl algorithm
+        
         # We have to define the start state. We should start the bird close to the
         # follow bird
         state = mdp.startState()
