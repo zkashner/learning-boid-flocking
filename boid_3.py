@@ -3,6 +3,9 @@
 # Ben Dowling - www.coderholic.com
 
 import sys, pygame, random, math
+import QLearnBoid
+from QLearnBoid import QLearnBoid
+from QLearnBoid import followTheLeaderBoidFeatureExtractor, distance
 
 pygame.init()
 
@@ -156,13 +159,13 @@ class LeadBoid(Boid):
         #self.x = (self.x + width) % width
         #self.y = (self.y + height) % height
 
-class straightLineBoid(Boid):
+class StraightLineBoid(Boid):
     def __init__(self, x, y):
         self.x = x
         self.y = y
         # move across the screen
         self.speed = 3
-        self.angle = 0
+        self.angle = 90
         self.direction = [1, 0]
 
     "Move closer to a set of boids"
@@ -195,7 +198,7 @@ class straightLineBoid(Boid):
         #self.x = (self.x + width) % width
         #self.y = (self.y + height) % height
 
-class learningBoid():
+class LearningBoid():
     def __init__(self, x, y, angle = 0.0, speed = 3): 
         self.x = x
         self.y = y
@@ -208,14 +211,14 @@ class learningBoid():
     def move(self, action):
         # Assume for now that an action is just an angle movement
         self.angle += action
-        self.direction[0] = math.sin(-math.radians(self.angle))
+        self.direction[0] = math.sin(math.radians(self.angle))
         self.direction[1] = -math.cos(math.radians(self.angle))
 
         # calculate the position from the direction and speed
         self.x += self.direction[0]*self.speed
         self.y += self.direction[1]*self.speed
 
-class circleBoid(Boid):
+class CircleBoid(Boid):
     def __init__(self, x, y):
         self.x = x
         self.y = y
@@ -328,20 +331,31 @@ def test_rl(rl):
     lead = pygame.image.load("bird1.png")
     leadrect = lead.get_rect()
 
+    #leaderBoid = StraightLineBoid(55, height / 2.0)
+    leaderBoid = CircleBoid(500, 300)
+    # Define the start state for our rl algorithm
+    learnerBoid = LearningBoid(450, 300, 90)
+
+    # Define the start state that will be passed to our learning algorithm
+    state = ((learnerBoid.x, learnerBoid.y, learnerBoid.angle), (leaderBoid.x, leaderBoid.y, learnerBoid.angle), leaderBoid.speed, (width, height))
+
+
     while 1:
         for event in pygame.event.get():
             if event.type == pygame.QUIT: sys.exit()
 
-        leaderBoid = straightLineBoid(55, height / 2.0)
-        # Define the start state for our rl algorithm
-        learnerBoid = learnerBoid(35, heigh / 2.0, 90)
-
         # Move both boids
         leaderBoid.move()
-        learnerBoid.move()
+
+        action = rl.getAction(state)
+        learnerBoid.move(action)
+
+        # Calculate the new state
+        newState = ((learnerBoid.x, learnerBoid.y, learnerBoid.angle), (leaderBoid.x, leaderBoid.y, learnerBoid.angle), leaderBoid.speed, (width, height))
             
         screen.fill(white)
 
+        state = newState
         # Draw the boids
         # Draw the leader
         boidRect = pygame.Rect(leadrect)
@@ -382,12 +396,12 @@ def simulate(rl, numTrials=10, maxIterations=1000, verbose=False,
         # Calculate the previous distance
         old_learner_loc = prev_state[0]
         old_leader_loc = prev_state[1]
-        distance_old = util.distance(old_learner_loc, old_leader_loc)
+        distance_old = distance(old_learner_loc, old_leader_loc)
 
         # Calculate new distance 
         new_learner_loc = newState[0]
         new_leader_loc = newState[1]
-        distance_new = util.distance(new_learner_loc, new_leader_loc)
+        distance_new = distance(new_learner_loc, new_leader_loc)
 
         reward = 0
         # Base reward on how the distance changes
@@ -405,12 +419,12 @@ def simulate(rl, numTrials=10, maxIterations=1000, verbose=False,
         # We want to start doing the simulation
         # Let us start by placing down a the leader and
         # the learning follower
-        leaderBoid = straightLineBoid(55, height / 2.0)
+        leaderBoid = StraightLineBoid(55, height / 2.0)
         # Define the start state for our rl algorithm
-        learnerBoid = learnerBoid(35, heigh / 2.0, 90)
+        learnerBoid = LearneringBoid(35, heigh / 2.0, 90)
 
         # Define the start state that will be passed to our learning algorithm
-        state = ((learnerBoid.x, learnerBoid.y), (leaderBoid.x, leaderBoid.y), leaderBoid.speed, (width, height))
+        state = ((learnerBoid.x, learnerBoid.y, learnerBoid.angle), (leaderBoid.x, leaderBoid.y, learnerBoid.angle), leaderBoid.speed, (width, height))
 
         # We have to define the start state. We should start the bird close to the
         # follow bird
@@ -426,7 +440,7 @@ def simulate(rl, numTrials=10, maxIterations=1000, verbose=False,
             # Move the leading bird
             leaderBoid.move()
 
-            newState = ((learnerBoid.x, learnerBoid.y), (leaderBoid.x, leaderBoid.y), leaderBoid.speed, (width, height))
+            newState = ((learnerBoid.x, learnerBoid.y, learnerBoid.angle), (leaderBoid.x, leaderBoid.y, leaderBoid.angle), leaderBoid.speed, (width, height))
             
             reward = reward(state, newState)
 
@@ -445,4 +459,11 @@ def simulate(rl, numTrials=10, maxIterations=1000, verbose=False,
     return totalRewards
 
 
-
+## Run the game!
+# Define the actions for the boids
+# as the angles that can turn
+def actions(state):
+    return [-20, -10, -5, -2, 0, 2, 5, 10, 20]
+rl = QLearnBoid(actions, 1, followTheLeaderBoidFeatureExtractor)
+#rl.explorationProb = 0
+test_rl(rl)

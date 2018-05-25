@@ -1,6 +1,5 @@
-import util, math, random
+import math, random
 from collections import defaultdict
-from util import ValueIteration
 
 # Performs Q-learning to learn to follow a leader for a boid.  
 # actions: a function that takes a state and returns a list of actions.
@@ -15,6 +14,9 @@ class QLearnBoid():
         self.featureExtractor = featureExtractor
         self.explorationProb = explorationProb
         self.weights = defaultdict(float)
+
+        # As a test lets set the weights
+        self.weights = {"distance": -1, "too-close": -100}
         self.numIters = 0
 
     # Return the Q function associated with the weights and features
@@ -70,17 +72,40 @@ def distance(loc1, loc2):
 def sub(loc2, loc1):
     return (loc2[0] - loc1[0], loc2[1] - loc1[1])
 
+    
+# Think of other features
+
 def followTheLeaderBoidFeatureExtractor(state, action):
     # State features
     # Pos of boid
     # Current direction of the boid
     # Pos of leader
-    boid, velocity, leader = state
+    boid, leader, velocity, size = state
     features = []
 
-    boid_x, boid_y = boid
-    leader_x, leader_y = leader
+    boid_x, boid_y, boid_angle = boid
+    leader_x, leader_y, leader_angle = leader
 
+    boid_angle += action
+    # Perform the action
+    direction_x = math.sin(math.radians(boid_angle))
+    direction_y = -math.cos(math.radians(boid_angle))
+
+    # calculate the position from the direction and speed
+    boid_x += direction_x * 3 
+    boid_y += direction_y * 3
+
+    updated_distance = distance((boid_x, boid_y), leader)
+
+    print 'action: %f, distance: %f' %(action, updated_distance)
+
+    features.append(('distance', updated_distance))
+
+    # Play with this
+    features.append(('too-close', 1.0 if updated_distance < 25 else 0))
+
+    return features
+    '''
     dx, dy = action
 
     # Calculate the new-coordinates of the boid
@@ -95,14 +120,23 @@ def followTheLeaderBoidFeatureExtractor(state, action):
     features.append(("distance", updated_distance))
     
     # Add feature representing the new distance
-    # detween the boid and the leader
+    # between the boid and the leader
+    features.append(("velocity", (round(velocity[0]), round(velocity[1]))))
 
+    min_side_dist = float('inf')
+    for i in range(2):
+        dist = distance((boid_x, boid_y), (boid_x, i * size[1]))
+        if dist < min_side_dist:
+            min_side_dist = dist
 
-    
+    for i in range(2):
+        dist = distance((boid_x, boid_y), (i * size[0], boid_y))
+        if dist < min_side_dist:
+            min_side_dist = dist
 
+    features.append(("side_distance", min_side_dist))
     # Think of other features
-
-
+    '''
 
 
 
