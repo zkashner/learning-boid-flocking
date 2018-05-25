@@ -75,7 +75,7 @@ def followTheLeaderBoidFeatureExtractor(state, action):
     # Pos of boid
     # Current direction of the boid
     # Pos of leader
-    boid, velocity, leader = state
+    boid, leader, velocity, size = state
     features = []
 
     boid_x, boid_y = boid
@@ -95,15 +95,19 @@ def followTheLeaderBoidFeatureExtractor(state, action):
     features.append(("distance", updated_distance))
     
     # Add feature representing the new distance
-    # detween the boid and the leader
+    # between the boid and the leader
+    features.append(("velocity", (round(velocity[0]), round(velocity[1]))))
 
+    min_side_dist = float('inf')
+    for i in range(2):
+        dist = distance((boid_x, boid_y), (boid_x, i * size[1]))
+        if dist < min_side_dist:
+            min_side_dist = dist
 
-    
+    for i in range(2):
+        dist = distance((boid_x, boid_y), (i * size[0], boid_y))
+        if dist < min_side_dist:
+            min_side_dist = dist
 
+    features.append(("side_distance", min_side_dist))
     # Think of other features
-
-
-
-
-
-
