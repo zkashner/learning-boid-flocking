@@ -14,6 +14,7 @@ maxVelocity = 4
 numBoids = 0
 boids = []
 
+crashdistance = 5
 
 
 leader_exists = True
@@ -194,6 +195,26 @@ class straightLineBoid(Boid):
         #self.x = (self.x + width) % width
         #self.y = (self.y + height) % height
 
+class learningBoid():
+    def __init__(self, x, y, angle = 0.0, speed = 3): 
+        self.x = x
+        self.y = y
+        # move across the screen
+
+        self.speed = speed
+        self.angle = angle
+        self.direction = [0, 0]
+
+    def move(self, action):
+        # Assume for now that an action is just an angle movement
+        self.angle += action
+        self.direction[0] = math.sin(-math.radians(self.angle))
+        self.direction[1] = -math.cos(math.radians(self.angle))
+
+        # calculate the position from the direction and speed
+        self.x += self.direction[0]*self.speed
+        self.y += self.direction[1]*self.speed
+
 class circleBoid(Boid):
     def __init__(self, x, y):
         self.x = x
@@ -229,7 +250,7 @@ class circleBoid(Boid):
         self.y += self.direction[1]*self.speed
 
 
-
+'''
 screen = pygame.display.set_mode(size)
 
 bird = pygame.image.load("bird.png")
@@ -295,6 +316,48 @@ while 1:
             screen.blit(bird, boidRect)
     pygame.display.flip()
     pygame.time.delay(1)
+'''
+
+def test_rl(rl):
+    # Super simple test right now with one leader and one 
+    # follower controlled by the rl algorithm
+    screen = pygame.display.set_mode(size)
+
+    bird = pygame.image.load("bird.png")
+    birdrect = bird.get_rect()
+    lead = pygame.image.load("bird1.png")
+    leadrect = lead.get_rect()
+
+    while 1:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT: sys.exit()
+
+        leaderBoid = straightLineBoid(55, height / 2.0)
+        # Define the start state for our rl algorithm
+        learnerBoid = learnerBoid(35, heigh / 2.0, 90)
+
+        # Move both boids
+        leaderBoid.move()
+        learnerBoid.move()
+            
+        screen.fill(white)
+
+        # Draw the boids
+        # Draw the leader
+        boidRect = pygame.Rect(leadrect)
+        boidRect.x = leaderBoid.x
+        boidRect.y = leaderBoid.y
+        screen.blit(lead, boidRect)
+
+        # Draw the learner
+        boidRect = pygame.Rect(birdrect)
+        boidRect.x = learnerBoid.x
+        boidRect.y = learnerBoid.y
+        screen.blit(bird, boidRect)
+        
+        pygame.display.flip()
+        pygame.time.delay(1)
+   
 
 # Perform |numTrials| of the following:
 # On each trial, take the MDP |mdp| and an RLAlgorithm |rl| and simulates the
@@ -312,40 +375,74 @@ def simulate(rl, numTrials=10, maxIterations=1000, verbose=False,
             if accum >= target: return i
         raise Exception("Invalid probs: %s" % probs)
 
+    def reward(prev_state, new_state):
+        # We will primarily calculate initial reward 
+        # based on distance between leader and the flying bird
+
+        # Calculate the previous distance
+        old_learner_loc = prev_state[0]
+        old_leader_loc = prev_state[1]
+        distance_old = util.distance(old_learner_loc, old_leader_loc)
+
+        # Calculate new distance 
+        new_learner_loc = newState[0]
+        new_leader_loc = newState[1]
+        distance_new = util.distance(new_learner_loc, new_leader_loc)
+
+        reward = 0
+        # Base reward on how the distance changes
+        if distance_new < crashdistance:
+            reward = -20
+        elif distance_old > distance_new:
+            reward = 5
+        elif distance_old < distance_new:
+            reward = -5
+
+        return reward
+
     totalRewards = []  # The rewards we get on each trial
     for trial in range(numTrials):
         # We want to start doing the simulation
         # Let us start by placing down a the leader and
         # the learning follower
-        leaderBoid = straightLineBoid(45, height / 2.0)
+        leaderBoid = straightLineBoid(55, height / 2.0)
         # Define the start state for our rl algorithm
-        
+        learnerBoid = learnerBoid(35, heigh / 2.0, 90)
+
+        # Define the start state that will be passed to our learning algorithm
+        state = ((learnerBoid.x, learnerBoid.y), (leaderBoid.x, leaderBoid.y), leaderBoid.speed, (width, height))
+
         # We have to define the start state. We should start the bird close to the
         # follow bird
-        state = mdp.startState()
         sequence = [state]
-        totalDiscount = 1
+        #totalDiscount = 1
         totalReward = 0
         for _ in range(maxIterations):
+            # Get the action predicted by the bird learning algorithm
             action = rl.getAction(state)
-            transitions = mdp.succAndProbReward(state, action)
-            if sort: transitions = sorted(transitions)
-            if len(transitions) == 0:
-                rl.incorporateFeedback(state, action, 0, None)
-                break
+            # Move the learning bird
+            learnerBoid.move(action)
 
-            # Choose a random transition
-            i = sample([prob for newState, prob, reward in transitions])
-            newState, prob, reward = transitions[i]
+            # Move the leading bird
+            leaderBoid.move()
+
+            newState = ((learnerBoid.x, learnerBoid.y), (leaderBoid.x, leaderBoid.y), leaderBoid.speed, (width, height))
+            
+            reward = reward(state, newState)
+
             sequence.append(action)
             sequence.append(reward)
             sequence.append(newState)
 
             rl.incorporateFeedback(state, action, reward, newState)
+
             totalReward += totalDiscount * reward
-            totalDiscount *= mdp.discount()
+
             state = newState
         if verbose:
             print "Trial %d (totalReward = %s): %s" % (trial, totalReward, sequence)
         totalRewards.append(totalReward)
     return totalRewards
+
+
+
