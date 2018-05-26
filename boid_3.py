@@ -536,7 +536,6 @@ def simulate_fixed(rl, numTrials=10, maxIterations=1000, verbose=False,
             newState = ((learnerBoid.x, learnerBoid.y, learnerBoid.angle), (leaderBoid.x, leaderBoid.y, leaderBoid.angle), leaderBoid.speed, (width, height))
             
             reward1 = reward(state, newState)
-            print reward1
 
             sequence.append(action)
             sequence.append(reward)
@@ -561,6 +560,7 @@ rl = QLearnBoid(actions, 0.05, followTheLeaderBoidFeatureExtractor)
 results = simulate(rl)
 rl.printWeights()
 total_rewards = simulate_fixed(rl)
+print "***total rewards for this different simulations***"
 print total_rewards
 #rl.explorationProb = 0
 test_rl(rl)
