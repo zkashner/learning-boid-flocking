@@ -411,6 +411,11 @@ def simulate(rl, numTrials=10, maxIterations=1000, verbose=False,
             reward = 5
         elif distance_old < distance_new:
             reward = -5
+        elif new_learner_loc[0] < 0 or new_learner_loc[0] > width:
+            reward = -20
+        elif new_learner_loc[2] < 0 or new_learner_loc[1] > height:
+            reward = -20
+
 
         return reward
 
