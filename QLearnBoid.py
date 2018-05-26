@@ -16,7 +16,8 @@ class QLearnBoid():
         self.weights = defaultdict(float)
 
         # As a test lets set the weights
-        self.weights = {"distance": -1, "too-close": -100}
+        self.weights = {"distance": -1, "too-close": -100, 'distance_delta':-1}
+        #, "side-distance": 0.2
         self.numIters = 0
 
     # Return the Q function associated with the weights and features
@@ -36,6 +37,14 @@ class QLearnBoid():
         else:
             return max((self.getQ(state, action), action) for action in self.actions(state))[1]
 
+    def normalizeWeights(self):
+        score = 0
+        for f in self.weights:
+            score += self.weights[f]
+
+        for f in self.weights:
+            self.weights[f] = self.weights[f]/float(score)
+
     # Call this function to get the step size to update the weights.
     def getStepSize(self):
         return 1.0 / math.sqrt(self.numIters)
@@ -51,16 +60,16 @@ class QLearnBoid():
         # Terminal state so no need to update
         #if newState == None:
             #Vopt = 0 
-        Vopt = 0
+        v_opt = 0
         if newState != None:
-            new_actions = self.actions(newState)
-            Vopt = max(self.getQ(newState, a_new) for a_new in new_actions)
-
-        #n(Qopt(s,a) - (r + gamma(Vopt(s'))))
-        scalar_value = self.getStepSize() * (self.getQ(state, action) - (reward + self.discount * Vopt))
-        # Update w
+            v_opt = max(self.getQ(newState, newAction) for newAction in self.actions(newState))
+        
+        coefficient = self.getStepSize() * (self.getQ(state, action) - reward - self.discount*v_opt)
         for f, v in self.featureExtractor(state, action):
-            self.weights[f] = self.weights[f] - scalar_value * v
+            self.weights[f] -= v* coefficient
+        
+        self.normalizeWeights()
+        print(self.weights)
         # END_YOUR_CODE
 
 
@@ -91,7 +100,10 @@ def followTheLeaderBoidFeatureExtractor(state, action):
     direction_x = math.sin(math.radians(boid_angle))
     direction_y = -math.cos(math.radians(boid_angle))
 
+    old_distance = distance((boid_x, boid_y), leader)
+
     # calculate the position from the direction and speed
+
     boid_x += direction_x * 3 
     boid_y += direction_y * 3
 
@@ -101,8 +113,23 @@ def followTheLeaderBoidFeatureExtractor(state, action):
 
     features.append(('distance', updated_distance))
 
+    features.append(('distance_delta', updated_distance - old_distance))
+
     # Play with this
     features.append(('too-close', 1.0 if updated_distance < 25 else 0))
+
+    min_side_dist = float('inf')
+    for i in range(2):
+        dist = distance((boid_x, boid_y), (boid_x, i * size[1]))
+        if dist < min_side_dist:
+            min_side_dist = dist
+
+    for i in range(2):
+        dist = distance((boid_x, boid_y), (i * size[0], boid_y))
+        if dist < min_side_dist:
+            min_side_dist = dist
+
+    #features.append(('side-distance', 1.0/min_side_dist))
 
     return features
     '''

@@ -421,7 +421,7 @@ def simulate(rl, numTrials=10, maxIterations=1000, verbose=False,
         # the learning follower
         leaderBoid = StraightLineBoid(55, height / 2.0)
         # Define the start state for our rl algorithm
-        learnerBoid = LearneringBoid(35, heigh / 2.0, 90)
+        learnerBoid = LearningBoid(35, height / 2.0, 90)
 
         # Define the start state that will be passed to our learning algorithm
         state = ((learnerBoid.x, learnerBoid.y, learnerBoid.angle), (leaderBoid.x, leaderBoid.y, learnerBoid.angle), leaderBoid.speed, (width, height))
@@ -429,7 +429,7 @@ def simulate(rl, numTrials=10, maxIterations=1000, verbose=False,
         # We have to define the start state. We should start the bird close to the
         # follow bird
         sequence = [state]
-        #totalDiscount = 1
+        totalDiscount = 1
         totalReward = 0
         for _ in range(maxIterations):
             # Get the action predicted by the bird learning algorithm
@@ -442,15 +442,15 @@ def simulate(rl, numTrials=10, maxIterations=1000, verbose=False,
 
             newState = ((learnerBoid.x, learnerBoid.y, learnerBoid.angle), (leaderBoid.x, leaderBoid.y, leaderBoid.angle), leaderBoid.speed, (width, height))
             
-            reward = reward(state, newState)
+            reward1 = reward(state, newState)
 
             sequence.append(action)
             sequence.append(reward)
             sequence.append(newState)
 
-            rl.incorporateFeedback(state, action, reward, newState)
+            rl.incorporateFeedback(state, action, reward1, newState)
 
-            totalReward += totalDiscount * reward
+            totalReward += totalDiscount * reward1
 
             state = newState
         if verbose:
@@ -464,6 +464,8 @@ def simulate(rl, numTrials=10, maxIterations=1000, verbose=False,
 # as the angles that can turn
 def actions(state):
     return [-20, -10, -5, -2, 0, 2, 5, 10, 20]
+
 rl = QLearnBoid(actions, 1, followTheLeaderBoidFeatureExtractor)
+results = simulate(rl)
 #rl.explorationProb = 0
 test_rl(rl)
