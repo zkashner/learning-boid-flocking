@@ -8,7 +8,7 @@ from collections import defaultdict
 # explorationProb: the epsilon value indicating how frequently the policy
 # returns a random action
 class QLearnBoid():
-    def __init__(self, actions, discount, featureExtractor, explorationProb=0.2):
+    def __init__(self, actions, discount, featureExtractor, explorationProb=0.1):
         self.actions = actions
         self.discount = discount
         self.featureExtractor = featureExtractor
@@ -69,12 +69,12 @@ class QLearnBoid():
         
         coefficient = self.getStepSize() * (self.getQ(state, action) - reward - self.discount*v_opt)
         for f, v in self.featureExtractor(state, action):
-            if f == 'too-close':
-                print 'v: %f, c: %f, mult: %f' % (v , coefficient, v * coefficient)
+            #if f == 'too-close':
+                #print 'v: %f, c: %f, mult: %f' % (v , coefficient, v * coefficient)
             self.weights[f] -= v * coefficient
         
-        self.normalizeWeights()
-        print(self.weights)
+        #self.normalizeWeights()
+        #print(self.weights)
         # END_YOUR_CODE
 
 
@@ -100,20 +100,19 @@ def followTheLeaderBoidFeatureExtractor(state, action):
     boid_x, boid_y, boid_angle = boid
     leader_x, leader_y, leader_angle = leader
 
+    old_distance = distance((boid_x, boid_y), leader)
     # Try not moving
     if action != None:
         boid_angle += action
-    # Perform the action
-    direction_x = math.sin(math.radians(boid_angle))
-    direction_y = -math.cos(math.radians(boid_angle))
+        # Perform the action
+        direction_x = math.sin(math.radians(boid_angle))
+        direction_y = -math.cos(math.radians(boid_angle))
 
-    old_distance = distance((boid_x, boid_y), leader)
 
-    # calculate the position from the direction and speed
-    speed = 0 if action == None else 3
-
-    boid_x += direction_x * 3 
-    boid_y += direction_y * 3
+        # calculate the position from the direction and speed
+        
+        boid_x += direction_x * 3 
+        boid_y += direction_y * 3
 
     updated_distance = distance((boid_x, boid_y), leader)
     #print updated_distance

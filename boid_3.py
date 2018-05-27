@@ -17,7 +17,7 @@ maxVelocity = 4
 numBoids = 0
 boids = []
 
-crashdistance = 5
+crashdistance = 20
 
 
 leader_exists = True
@@ -245,7 +245,7 @@ class CircleBoid(Boid):
     def move(self):
         # We want to just move at a constant 5 degree angle
 
-        self.angle += 2
+        self.angle += 1
         self.direction[0] = math.sin(-math.radians(self.angle))
         self.direction[1] = -math.cos(math.radians(self.angle))
 
@@ -380,7 +380,7 @@ def test_rl(rl):
 # RL algorithm according to the dynamics of the MDP.
 # Each trial will run for at most |maxIterations|.
 # Return the list of rewards that we get for each trial.
-def simulate(rl, numTrials=100, maxIterations=1000, verbose=False,
+def simulate(rl, numTrials=25, maxIterations=1000, verbose=False,
              sort=False):
     # Return i in [0, ..., len(probs)-1] with probability probs[i].
     def sample(probs):
@@ -390,6 +390,12 @@ def simulate(rl, numTrials=100, maxIterations=1000, verbose=False,
             accum += prob
             if accum >= target: return i
         raise Exception("Invalid probs: %s" % probs)
+
+    def isfollowing(state):
+        # Define following as being within 20-30 units
+        if not(distance(state[0], state[1]) > 20 and distance(state[0], state[1]) <= 35):
+            print distance(state[0], state[1])
+        return distance(state[0], state[1]) > 20 and distance(state[0], state[1]) <= 35
 
     def reward(prev_state, new_state):
         # We will primarily calculate initial reward 
@@ -409,13 +415,15 @@ def simulate(rl, numTrials=100, maxIterations=1000, verbose=False,
         # Base reward on how the distance changes
         if distance_new < crashdistance:
             #reward = -110
-            reward = -15
+            reward = -35
         elif distance_old > distance_new:
             #reward = 400
             reward = 5
         elif distance_old < distance_new:
             #reward = -150
-            reward = -1
+            reward = -5
+        #elif distance_new > 55:
+            #reward = -35
 
 
         #if new_learner_loc[0] < 0 or new_learner_loc[0] > width:
@@ -426,6 +434,7 @@ def simulate(rl, numTrials=100, maxIterations=1000, verbose=False,
         return reward
 
     totalRewards = []  # The rewards we get on each trial
+    following = []
     for trial in range(numTrials):
         # We want to start doing the simulation
         # Let us start by placing down a the leader and
@@ -444,6 +453,7 @@ def simulate(rl, numTrials=100, maxIterations=1000, verbose=False,
         sequence = [state]
         totalDiscount = 1
         totalReward = 0
+        time_steps_following = 0
         for _ in range(maxIterations):
             # Get the action predicted by the bird learning algorithm
             action = rl.getAction(state)
@@ -464,12 +474,17 @@ def simulate(rl, numTrials=100, maxIterations=1000, verbose=False,
             rl.incorporateFeedback(state, action, reward1, newState)
 
             totalReward += totalDiscount * reward1
+            if trial % 3 == 0:
+                time_steps_following += 1 if isfollowing(newState) else 0
 
             state = newState
         if verbose:
             print "Trial %d (totalReward = %s): %s" % (trial, totalReward, sequence)
+        if trial % 3 == 0:
+            following.append(time_steps_following)
+            rl.printWeights()
         totalRewards.append(totalReward)
-    return totalRewards
+    return totalRewards, following
 
 def simulate_fixed(rl, numTrials=10, maxIterations=1000, verbose=False,
              sort=False):
@@ -561,10 +576,11 @@ def simulate_fixed(rl, numTrials=10, maxIterations=1000, verbose=False,
 # Define the actions for the boids
 # as the angles that can turn
 def actions(state):
-    return [None, -20, -10, -5, -2, 0, 2, 5, 10, 20]
+    return [None, -35, -20, -10, -5, -2, 0, 2, 5, 10, 20, 35]
 
 rl = QLearnBoid(actions, 0.05, followTheLeaderBoidFeatureExtractor)
-results = simulate(rl)
+results, following = simulate(rl)
+print following
 rl.printWeights()
 #total_rewards = simulate_fixed(rl)
 print "***total rewards for this different simulations***"
