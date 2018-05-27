@@ -16,7 +16,7 @@ class QLearnBoid():
         self.weights = defaultdict(float)
 
         # As a test lets set the weights
-        self.weights = {"distance": -1, "too-close": -1, 'distance-delta':-1, 'side-distance':1, 'inverse-distance':1}
+        #self.weights = {"distance": -1, "too-close": -1, 'distance-delta':-1, 'side-distance':1, 'inverse-distance':1}
         #, "side-distance": 0.2
         self.numIters = 0
 
@@ -69,6 +69,8 @@ class QLearnBoid():
         
         coefficient = self.getStepSize() * (self.getQ(state, action) - reward - self.discount*v_opt)
         for f, v in self.featureExtractor(state, action):
+            if f == 'too-close':
+                print 'v: %f, c: %f, mult: %f' % (v , coefficient, v * coefficient)
             self.weights[f] -= v * coefficient
         
         self.normalizeWeights()
@@ -98,7 +100,9 @@ def followTheLeaderBoidFeatureExtractor(state, action):
     boid_x, boid_y, boid_angle = boid
     leader_x, leader_y, leader_angle = leader
 
-    boid_angle += action
+    # Try not moving
+    if action != None:
+        boid_angle += action
     # Perform the action
     direction_x = math.sin(math.radians(boid_angle))
     direction_y = -math.cos(math.radians(boid_angle))
@@ -106,22 +110,24 @@ def followTheLeaderBoidFeatureExtractor(state, action):
     old_distance = distance((boid_x, boid_y), leader)
 
     # calculate the position from the direction and speed
+    speed = 0 if action == None else 3
 
     boid_x += direction_x * 3 
     boid_y += direction_y * 3
 
     updated_distance = distance((boid_x, boid_y), leader)
+    #print updated_distance
 
     # print 'action: %f, distance: %f' %(action, updated_distance)
 
-    features.append(('distance', updated_distance))
+    #features.append(('distance', updated_distance))
 
     features.append(('distance-delta', updated_distance - old_distance))
 
-    features.append(('inverse-distance', 1.0/updated_distance))
+    #features.append(('inverse-distance', 1.0/updated_distance))
 
     # Play with this
-    features.append(('too-close', 1.0 if updated_distance < 5 else 0))
+    features.append(('too-close', 1.0 if updated_distance < 20 else 0))
 
     min_side_dist = float('inf')
     for i in range(2):
@@ -134,7 +140,7 @@ def followTheLeaderBoidFeatureExtractor(state, action):
         if dist < min_side_dist:
             min_side_dist = dist
 
-    features.append(('side-distance', 1.0/min_side_dist))
+    #features.append(('side-distance', 1.0/min_side_dist))
 
     return features
     '''
