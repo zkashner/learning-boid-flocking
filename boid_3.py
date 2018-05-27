@@ -380,7 +380,7 @@ def test_rl(rl):
 # RL algorithm according to the dynamics of the MDP.
 # Each trial will run for at most |maxIterations|.
 # Return the list of rewards that we get for each trial.
-def simulate(rl, numTrials=25, maxIterations=1000, verbose=False,
+def simulate(rl, numTrials=45, maxIterations=1000, verbose=False,
              sort=False):
     # Return i in [0, ..., len(probs)-1] with probability probs[i].
     def sample(probs):
@@ -393,8 +393,8 @@ def simulate(rl, numTrials=25, maxIterations=1000, verbose=False,
 
     def isfollowing(state):
         # Define following as being within 20-30 units
-        if not(distance(state[0], state[1]) > 20 and distance(state[0], state[1]) <= 35):
-            print distance(state[0], state[1])
+        #if not(distance(state[0], state[1]) > 20 and distance(state[0], state[1]) <= 35):
+            #print distance(state[0], state[1])
         return distance(state[0], state[1]) > 20 and distance(state[0], state[1]) <= 35
 
     def reward(prev_state, new_state):
@@ -420,10 +420,15 @@ def simulate(rl, numTrials=25, maxIterations=1000, verbose=False,
             #reward = 400
             reward = 5
         elif distance_old < distance_new:
+            if distance_new > 35:
+                reward = -35
             #reward = -150
-            reward = -5
-        #elif distance_new > 55:
+            else:
+                reward = -5
+        #elif distance_new > 35:
             #reward = -35
+        #else:
+            #reward = 1
 
 
         #if new_learner_loc[0] < 0 or new_learner_loc[0] > width:
@@ -576,7 +581,7 @@ def simulate_fixed(rl, numTrials=10, maxIterations=1000, verbose=False,
 # Define the actions for the boids
 # as the angles that can turn
 def actions(state):
-    return [None, -35, -20, -10, -5, -2, 0, 2, 5, 10, 20, 35]
+    return [None, -45, -35, -20, -10, -5, -2, 0, 2, 5, 10, 20, 35, 45]
 
 rl = QLearnBoid(actions, 0.05, followTheLeaderBoidFeatureExtractor)
 results, following = simulate(rl)
