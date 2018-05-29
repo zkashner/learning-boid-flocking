@@ -130,6 +130,8 @@ class LeadBoid(Boid):
         self.y = y
         self.velocityX = random.randint(1, 10) / 10.0
         self.velocityY = random.randint(1, 10) / 10.0
+        self.speed = 3
+        self.angle = 0.0
 
     "Move closer to a set of boids"
     def moveCloser(self, boids):
@@ -212,6 +214,7 @@ class LearningBoid():
         # Assume for now that an action is just an angle movement
         if action != None:
             self.angle += action
+            self.angle = self.angle % 360
             self.direction[0] = math.sin(math.radians(self.angle))
             self.direction[1] = -math.cos(math.radians(self.angle))
 
@@ -246,6 +249,7 @@ class CircleBoid(Boid):
         # We want to just move at a constant 5 degree angle
 
         self.angle += 1
+        self.angle = self.angle % 360
         self.direction[0] = math.sin(-math.radians(self.angle))
         self.direction[1] = -math.cos(math.radians(self.angle))
 
@@ -334,12 +338,15 @@ def test_rl(rl):
 
     #leaderBoid = StraightLineBoid(55, height / 2.0)
     leaderBoid = CircleBoid(500, 300)
+    #leaderBoid = LeadBoid(55, height / 2.0)
     # Define the start state for our rl algorithm
     #learnerBoid = LearningBoid(25, height / 2.0, 90)
     learnerBoid = LearningBoid(450, 300, 90)
+    learnerBoid2 = LearningBoid(350, 310, 90)
 
     # Define the start state that will be passed to our learning algorithm
     state = ((learnerBoid.x, learnerBoid.y, learnerBoid.angle), (leaderBoid.x, leaderBoid.y, learnerBoid.angle), leaderBoid.speed, (width, height))
+    state2 = ((learnerBoid2.x, learnerBoid2.y, learnerBoid2.angle), (leaderBoid.x, leaderBoid.y, learnerBoid.angle), leaderBoid.speed, (width, height))
 
 
     while 1:
@@ -350,14 +357,18 @@ def test_rl(rl):
         leaderBoid.move()
 
         action = rl.getAction(state)
+        action2 = rl.getAction(state2)
         learnerBoid.move(action)
+        learnerBoid2.move(action2)
 
         # Calculate the new state
         newState = ((learnerBoid.x, learnerBoid.y, learnerBoid.angle), (leaderBoid.x, leaderBoid.y, learnerBoid.angle), leaderBoid.speed, (width, height))
-            
+        newState2 = ((learnerBoid2.x, learnerBoid2.y, learnerBoid2.angle), (leaderBoid.x, leaderBoid.y, learnerBoid.angle), leaderBoid.speed, (width, height))
+    
         screen.fill(white)
 
         state = newState
+        state2 = newState2
         # Draw the boids
         # Draw the leader
         boidRect = pygame.Rect(leadrect)
@@ -369,6 +380,11 @@ def test_rl(rl):
         boidRect = pygame.Rect(birdrect)
         boidRect.x = learnerBoid.x
         boidRect.y = learnerBoid.y
+        screen.blit(bird, boidRect)
+
+        boidRect = pygame.Rect(birdrect)
+        boidRect.x = learnerBoid2.x
+        boidRect.y = learnerBoid2.y
         screen.blit(bird, boidRect)
         
         pygame.display.flip()
@@ -420,10 +436,10 @@ def simulate(rl, numTrials=45, maxIterations=1000, verbose=False,
             #reward = 400
             reward = 5
         elif distance_old < distance_new:
-            if distance_new > 35:
-                reward = -35
+            #if distance_new > 35:
+                #reward = -35
             #reward = -150
-            else:
+            #else:
                 reward = -5
         #elif distance_new > 35:
             #reward = -35
@@ -445,6 +461,7 @@ def simulate(rl, numTrials=45, maxIterations=1000, verbose=False,
         # Let us start by placing down a the leader and
         # the learning follower
         #leaderBoid = StraightLineBoid(55, height / 2.0)
+        #leaderBoid = LeadBoid(55, height / 2.0)
         leaderBoid = CircleBoid(500, 300)
         # Define the start state for our rl algorithm
         #learnerBoid = LearningBoid(25, height / 2.0, 90)
@@ -582,6 +599,7 @@ def simulate_fixed(rl, numTrials=10, maxIterations=1000, verbose=False,
 # as the angles that can turn
 def actions(state):
     return [None, -45, -35, -20, -10, -5, -2, 0, 2, 5, 10, 20, 35, 45]
+    #return [None, -45, 0, 45, 90, -90, 135, -135, 180]
 
 rl = QLearnBoid(actions, 0.05, followTheLeaderBoidFeatureExtractor)
 results, following = simulate(rl)

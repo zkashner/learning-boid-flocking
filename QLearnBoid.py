@@ -48,6 +48,7 @@ class QLearnBoid():
     # Call this function to get the step size to update the weights.
     def getStepSize(self):
         return 1.0 / math.sqrt(self.numIters)
+        #return 1.0 / self.numIters
 
     def printWeights(self):
         print self.weights
@@ -68,6 +69,7 @@ class QLearnBoid():
             v_opt = max(self.getQ(newState, newAction) for newAction in self.actions(newState))
         
         coefficient = self.getStepSize() * (self.getQ(state, action) - reward - self.discount*v_opt)
+        #print coefficient
         for f, v in self.featureExtractor(state, action):
             #if f == 'too-close':
                 #print 'v: %f, c: %f, mult: %f' % (v , coefficient, v * coefficient)
@@ -101,6 +103,7 @@ def followTheLeaderBoidFeatureExtractor(state, action):
     leader_x, leader_y, leader_angle = leader
 
     old_distance = distance((boid_x, boid_y), leader)
+    old_angle = boid_angle
     # Try not moving
     if action != None:
         boid_angle += action
@@ -121,12 +124,24 @@ def followTheLeaderBoidFeatureExtractor(state, action):
 
     #features.append(('distance', updated_distance))
 
-    features.append(('distance-delta', updated_distance - old_distance))
+    # Try inverse
+    #features.append(('distance-delta', updated_distance - old_distance))
+    distance_delta = updated_distance - old_distance
+    #distance_delta_val = 1.0 / distance_delta if distance_delta != 0 else 1.0 / - 0.5
+    features.append(('distance-delta', distance_delta))
+
 
     #features.append(('inverse-distance', 1.0/updated_distance))
 
     # Play with this
     features.append(('too-close', 1.0 if updated_distance < 20 else 0))
+
+    # Can we make them go toward the same direction?
+    # Compare the difference in angle before and after move
+    angle_delta = math.fabs(math.fabs(old_angle - leader_angle) - math.fabs(boid_angle - leader_angle))
+    angle_delta = math.fabs(boid_angle - leader_angle)
+    angle_delta_val = 1.0 / angle_delta if angle_delta != 0 else 1
+    features.append(('angle-direction', angle_delta_val))
 
     min_side_dist = float('inf')
     for i in range(2):
