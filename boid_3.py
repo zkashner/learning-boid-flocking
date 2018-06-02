@@ -12,6 +12,7 @@ pygame.init()
 size = width, height = 1000, 600
 black = 0, 0, 0
 white = 255, 255, 255
+minvel, maxvel = 0, 3
 
 maxVelocity = 4
 numBoids = 0
@@ -245,8 +246,13 @@ class LearningBoid():
 
     def move(self, action):
         # Assume for now that an action is just an angle movement
-        if action != None:
-            self.angle += action
+        if action[0] != None:
+            self.angle += action[0]
+            self.speed += action[1]
+            if self.speed > maxvel:
+                self.speed = maxvel
+            elif self.speed < minvel:
+                self.speed = minvel
             self.angle = self.angle % 360
             self.direction[0] = math.sin(math.radians(self.angle))
             self.direction[1] = -math.cos(math.radians(self.angle))
@@ -484,33 +490,37 @@ def simulate(rl, numTrials=45, maxIterations=1000, verbose=False,
 
         reward = 0
         # Base reward on how the distance changes
-        if distance_new < crashdistance:
-            #reward = -110
+        if distance_new == 0:
+            reward = -1000
+
+        elif distance_new < crashdistance:
+            # OLD!!
+            '''
             if distance_old <= distance_new:
                 reward = 45
             else:
                 reward = -45
+            '''
+            reward = -45
+            # else:
+
+            reward = (-500) * (1/distance_new)
+
         elif distance_old > distance_new:
-            #reward = 400
-            reward = 5
+            # OLD!!
+            # reward = 5
+            reward = 10
+            reward += 500 * (1/distance_new)
         elif distance_old < distance_new:
-            #if distance_new > 35:
-                #reward = -35
-            #reward = -150
-            #else:
-            reward = -5
-        #elif distance_new > 35:
-            #reward = -35
-        #else:
-            #reward = 1
+            # OLD!!!
+            # reward = -5
 
 
-        #if new_learner_loc[0] < 0 or new_learner_loc[0] > width:
-            #reward += -100 + min(new_learner_loc[0], width - new_learner_loc[0])
-        #if new_learner_loc[1] < 0 or new_learner_loc[1] > height:
-            #reward += -100 + min(new_learner_loc[1], height - new_learner_loc[1])
+            reward = -10
+            reward += 500 * (1/distance_new)
 
         return reward
+
 
     totalRewards = []  # The rewards we get on each trial
     following = []
@@ -566,89 +576,92 @@ def simulate(rl, numTrials=45, maxIterations=1000, verbose=False,
         totalRewards.append(totalReward)
     return totalRewards, following
 
-def simulate_fixed(rl, numTrials=10, maxIterations=1000, verbose=False,
-             sort=False):
-    # Return i in [0, ..., len(probs)-1] with probability probs[i].
-    def sample(probs):
-        target = random.random()
-        accum = 0
-        for i, prob in enumerate(probs):
-            accum += prob
-            if accum >= target: return i
-        raise Exception("Invalid probs: %s" % probs)
-
-    def reward(prev_state, new_state):
-        # We will primarily calculate initial reward 
-        # based on distance between leader and the flying bird
-
-        # Calculate the previous distance
-        old_learner_loc = prev_state[0]
-        old_leader_loc = prev_state[1]
-        distance_old = distance(old_learner_loc, old_leader_loc)
-
-        # Calculate new distance 
-        new_learner_loc = newState[0]
-        new_leader_loc = newState[1]
-        distance_new = distance(new_learner_loc, new_leader_loc)
-
-        reward = 0
-        # Base reward on how the distance changes
-        if distance_new < crashdistance:
-            reward = -110
-        elif distance_old > distance_new:
-            reward = 400
-        elif distance_old < distance_new:
-            reward = -150
 
 
-        if new_learner_loc[0] < 0 or new_learner_loc[0] > width:
-            reward += -100 + min(new_learner_loc[0], width - new_learner_loc[0])
-        if new_learner_loc[1] < 0 or new_learner_loc[1] > height:
-            reward += -100 + min(new_learner_loc[1], height - new_learner_loc[1])
+# def simulate_fixed(rl, numTrials=10, maxIterations=1000, verbose=False,
+#              sort=False):
+#     # Return i in [0, ..., len(probs)-1] with probability probs[i].
+#     def sample(probs):
+#         target = random.random()
+#         accum = 0
+#         for i, prob in enumerate(probs):
+#             accum += prob
+#             if accum >= target: return i
+#         raise Exception("Invalid probs: %s" % probs)
 
-        return reward
+#     def reward(prev_state, new_state):
+#         # We will primarily calculate initial reward 
+#         # based on distance between leader and the flying bird
+
+#         # Calculate the previous distance
+#         old_learner_loc = prev_state[0]
+#         old_leader_loc = prev_state[1]
+#         distance_old = distance(old_learner_loc, old_leader_loc)
+
+#         # Calculate new distance 
+#         new_learner_loc = newState[0]
+#         new_leader_loc = newState[1]
+#         distance_new = distance(new_learner_loc, new_leader_loc)
+
+#         reward = 0
+
+#         # Base reward on how the distance changes
+#         if distance_new < crashdistance:
+#             reward = -110
+#         elif distance_old > distance_new:
+#             reward = 400
+#         elif distance_old < distance_new:
+#             reward = -150
 
 
-    totalRewards = []  # The rewards we get on each trial
-    for trial in range(numTrials):
-        # We want to start doing the simulation
-        # Let us start by placing down a the leader and
-        # the learning follower
-        leaderBoid = StraightLineBoid(55, height / 2.0)
-        # Define the start state for our rl algorithm
-        learnerBoid = LearningBoid(25, height / 2.0, 90)
+#         if new_learner_loc[0] < 0 or new_learner_loc[0] > width:
+#             reward += -100 + min(new_learner_loc[0], width - new_learner_loc[0])
+#         if new_learner_loc[1] < 0 or new_learner_loc[1] > height:
+#             reward += -100 + min(new_learner_loc[1], height - new_learner_loc[1])
 
-        # Define the start state that will be passed to our learning algorithm
-        state = ((learnerBoid.x, learnerBoid.y, learnerBoid.angle), (leaderBoid.x, leaderBoid.y, learnerBoid.angle), leaderBoid.speed, (width, height))
+#         return reward
 
-        # We have to define the start state. We should start the bird close to the
-        # follow bird
-        sequence = [state]
-        totalDiscount = 1
-        totalReward = 0
-        for _ in range(maxIterations):
-            # Get the action predicted by the bird learning algorithm
-            action = rl.getAction(state)
-            # Move the learning bird
-            learnerBoid.move(action)
 
-            # Move the leading bird
-            leaderBoid.move()
+#     totalRewards = []  # The rewards we get on each trial
+#     for trial in range(numTrials):
+#         # We want to start doing the simulation
+#         # Let us start by placing down a the leader and
+#         # the learning follower
+#         leaderBoid = StraightLineBoid(55, height / 2.0)
+#         # Define the start state for our rl algorithm
+#         learnerBoid = LearningBoid(25, height / 2.0, 90)
 
-            newState = ((learnerBoid.x, learnerBoid.y, learnerBoid.angle), (leaderBoid.x, leaderBoid.y, leaderBoid.angle), leaderBoid.speed, (width, height))
+#         # Define the start state that will be passed to our learning algorithm
+#         state = ((learnerBoid.x, learnerBoid.y, learnerBoid.angle), (leaderBoid.x, leaderBoid.y, learnerBoid.angle), leaderBoid.speed, (width, height))
+
+#         # We have to define the start state. We should start the bird close to the
+#         # follow bird
+#         sequence = [state]
+#         totalDiscount = 1
+#         totalReward = 0
+#         for _ in range(maxIterations):
+#             # Get the action predicted by the bird learning algorithm
+#             action = rl.getAction(state)
+#             # Move the learning bird
+#             learnerBoid.move(action)
+
+#             # Move the leading bird
+#             leaderBoid.move()
+
+#             newState = ((learnerBoid.x, learnerBoid.y, learnerBoid.angle), (leaderBoid.x, leaderBoid.y, leaderBoid.angle), leaderBoid.speed, (width, height))
             
-            reward1 = reward(state, newState)
+#             reward1 = reward(state, newState)
 
-            sequence.append(action)
-            sequence.append(reward)
-            sequence.append(newState)
+#             sequence.append(action)
+#             sequence.append(reward)
+#             sequence.append(newState)
 
-            totalReward += totalDiscount * reward1
+#             totalReward += totalDiscount * reward1
 
-            state = newState
+#             state = newState
 
-        totalRewards.append(totalReward)
-    return totalRewards
+#         totalRewards.append(totalReward)
+#     return totalRewards
 
 
 
@@ -656,7 +669,18 @@ def simulate_fixed(rl, numTrials=10, maxIterations=1000, verbose=False,
 # Define the actions for the boids
 # as the angles that can turn
 def actions(state):
-    return [None, -45, -35, -20, -10, -5, -2, 0, 2, 5, 10, 20, 35, 45, 180]
+    # OLD!!
+    # return [None, -45, -35, -20, -10, -5, -2, 0, 2, 5, 10, 20, 35, 45, 180]
+    angles = [-45, -35, -20, -10, -5, -2, 0, 2, 5, 10, 20, 35, 45]
+    velocities = [-.3, -.2, -.1, 0, .1, .2, .3]
+
+    toReturn = []
+
+    for angle in angles:
+        for speed in velocities:
+            toReturn.append((angle, speed))
+
+    return toReturn
     #return [None, -45, 0, 45, 90, -90, 135, -135, 180]
 
 rl = QLearnBoid(actions, 0.9, followLeaderBoidFeatureExtractorV2)
