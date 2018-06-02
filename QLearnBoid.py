@@ -68,6 +68,10 @@ class QLearnBoid():
         coefficient = self.getStepSize() * (self.getQ(state, action) - reward - self.discount*v_opt)
         
         for f, v in self.featureExtractor(state, action):
+            #if f == 'too-close':
+                #if v != 0:
+                    #print "value: %f, reward: %f" % (v, reward)
+                    
             self.weights[f] -= (v * coefficient)
 
 #caculates euclidean distance
@@ -107,6 +111,12 @@ def followLeaderBoidFeatureExtractorV2(state, action):
 
     updated_distance = distance((boid_x, boid_y), leader)
 
+    # Try updating the location of the leader
+    #direction_lead_x = math.sin(math.radians(leader_angle))
+    #direction_lead_y = -math.cos(math.radians(leader_angle))
+    #leader_x += direction_lead_x * 3
+    #leader_y += direction_lead_y * 3
+    #updated_distance = distance((boid_x, boid_y), (leader_x, leader_y))
     
 
     distance_delta = updated_distance - old_distance
@@ -117,7 +127,7 @@ def followLeaderBoidFeatureExtractorV2(state, action):
         features.append(('distance', 0))
     else:
         #features.append(('too-close', updated_distance if updated_distance < 20 else 0))
-        features.append(('too-close', 0))
+        features.append(('too-close', 0.0))
         features.append(('distance-delta', distance_delta))
         features.append(('distance', 1/updated_distance))
     # feauture to see simlarity of angels, compare the difference in angle before and after move

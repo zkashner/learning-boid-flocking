@@ -126,7 +126,7 @@ class Boid:
 
 
 class LeadBoid(Boid):
-    def __init__(self, x, y):
+    def __init__(self, x, y, isTraining=False):
         self.x = x
         self.y = y
 
@@ -137,6 +137,7 @@ class LeadBoid(Boid):
         self.multiple = 1
         self.velocityX = random.uniform(-1,1)
         self.velocityY = random.uniform(-1,1)
+        self.isTraining = isTraining
 
     "Move closer to a set of boids"
     def moveCloser(self, boids):
@@ -173,10 +174,11 @@ class LeadBoid(Boid):
         self.x += self.direction[0]*self.speed
         self.y += self.direction[1]*self.speed
 
-        if self.x <= 10 or self.x >= width - 10:
-            self.angle += 90
-        if self.y <= 10 or self.y >= height - 10:
-            self.angle += 90
+        if not self.isTraining:
+            if self.x <= 10 or self.x >= width - 10:
+                self.angle += 90
+            if self.y <= 10 or self.y >= height - 10:
+                self.angle += 90
 
 
         # self.velocityX += random.uniform(-1,1)
@@ -376,7 +378,7 @@ def test_rl(rl):
     leadrect = lead.get_rect()
 
     #leaderBoid = StraightLineBoid(55, height / 2.0)
-    leaderBoid = LeadBoid(500, 300)
+    leaderBoid = LeadBoid(500, 300, False)
     #leaderBoid = LeadBoid(55, height / 2.0)
     # Define the start state for our rl algorithm
     #learnerBoid = LearningBoid(25, height / 2.0, 90)
@@ -487,6 +489,7 @@ def simulate(rl, numTrials=45, maxIterations=1000, verbose=False,
         new_learner_loc = newState[0]
         new_leader_loc = newState[1]
         distance_new = distance(new_learner_loc, new_leader_loc)
+        #distance_new = distance(new_learner_loc, old_leader_loc)
 
         reward = 0
         # Base reward on how the distance changes
@@ -496,24 +499,24 @@ def simulate(rl, numTrials=45, maxIterations=1000, verbose=False,
 
         elif distance_new < crashdistance:
             # OLD!!
-            '''
-            if distance_old <= distance_new:
-                reward = 45
-            else:
-                reward = -45
-            '''
+            
+            #if distance_old <= distance_new:
+                #reward = 45
+            #else:
+                #reward = -45
+            
             reward = -45
             # else:
 
             reward = (-500) * (1/distance_new)
         '''
-
+        '''
         if distance_new < crashdistance:
             reward = - 2*(1/distance_new)
         elif distance_old > distance_new:
             
                         # OLD!!
-            '''
+            
             # reward = 5
             reward = 10
             reward += 500 * (1/distance_new)
@@ -524,13 +527,24 @@ def simulate(rl, numTrials=45, maxIterations=1000, verbose=False,
 
             reward = -10
             reward += 500 * (1/distance_new)
-            '''
+            
             reward = distance_new / float(8)
             # reward += (1/distance_new)
         elif distance_old < distance_new:
             reward = - distance_new / float(2)
             # reward -= (1/distance_new)
-
+        '''
+        if distance_new < crashdistance:
+            #reward = - 600*(1/distance_new)
+            reward = -35
+            #print reward
+        elif distance_old > distance_new:
+            #reward = distance_new / float(8)
+            reward = 5
+            # reward += (1/distance_new)
+        elif distance_old < distance_new:
+            #reward = - distance_new / float(2)
+            reward = -5
         return reward
 
 
@@ -542,7 +556,7 @@ def simulate(rl, numTrials=45, maxIterations=1000, verbose=False,
         # the learning follower
         #leaderBoid = StraightLineBoid(55, height / 2.0)
         #leaderBoid = LeadBoid(55, height / 2.0)
-        leaderBoid = LeadBoid(500, 300)
+        leaderBoid = LeadBoid(500, 300, True)
         # Define the start state for our rl algorithm
         #learnerBoid = LearningBoid(25, height / 2.0, 90)
         learnerBoid = LearningBoid(450, 300, 90)
@@ -695,7 +709,7 @@ def actions(state):
     return toReturn
     #return [None, -45, 0, 45, 90, -90, 135, -135, 180]
 
-rl = QLearnBoid(actions, 0.9, followLeaderBoidFeatureExtractorV2)
+rl = QLearnBoid(actions, 0.05, followLeaderBoidFeatureExtractorV2)
 results, following = simulate(rl)
 print following
 rl.printWeights()
