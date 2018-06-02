@@ -91,8 +91,13 @@ def followLeaderBoidFeatureExtractorV2(state, action):
     old_distance = distance((boid_x, boid_y), leader)
     old_angle = boid_angle
     # Try not moving
-    if action != None:
-        boid_angle += action
+    if action[0] != None:
+        boid_angle += action[0]
+        velocity += action[1]
+        if velocity > 3:
+            velocity = 3
+        if velocity < 0:
+            velocity = 0
         direction_x = math.sin(math.radians(boid_angle))
         direction_y = -math.cos(math.radians(boid_angle))
 
@@ -108,11 +113,13 @@ def followLeaderBoidFeatureExtractorV2(state, action):
     # Saying if we are going to crash into the other bird (the number 20 can be changed)
     features.append(('too-close', 1.0 if updated_distance < 20 else 0))
     
+    #features.append(('distance', updated_distance))
     # feauture to see simlarity of angels, compare the difference in angle before and after move
     angle_delta = math.fabs(math.fabs(old_angle - leader_angle) - math.fabs(boid_angle - leader_angle))
     angle_delta = math.fabs(boid_angle - leader_angle)
     angle_delta_val = 1.0 / angle_delta if angle_delta != 0 else 1
     #features.append(('angle-direction', angle_delta_val))
+
 
     min_side_dist = float('inf')
     for i in range(2):
