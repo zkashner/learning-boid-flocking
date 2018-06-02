@@ -112,7 +112,7 @@ def followLeaderBoidFeatureExtractorV2(state, action):
     angle_delta = math.fabs(math.fabs(old_angle - leader_angle) - math.fabs(boid_angle - leader_angle))
     angle_delta = math.fabs(boid_angle - leader_angle)
     angle_delta_val = 1.0 / angle_delta if angle_delta != 0 else 1
-    features.append(('angle-direction', angle_delta_val))
+    #features.append(('angle-direction', angle_delta_val))
 
     min_side_dist = float('inf')
     for i in range(2):

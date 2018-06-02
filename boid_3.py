@@ -374,12 +374,21 @@ def test_rl(rl):
     #leaderBoid = LeadBoid(55, height / 2.0)
     # Define the start state for our rl algorithm
     #learnerBoid = LearningBoid(25, height / 2.0, 90)
-    learnerBoid = LearningBoid(450, 300, 90)
-    learnerBoid2 = LearningBoid(350, 310, 90)
+    learnedBoids = []
+    learnedBoids.append(LearningBoid(450, 300, 90))
+    learnedBoids.append(LearningBoid(350, 310, 90))
+    learnedBoids.append(LearningBoid(575, 350, 90))
+    learnedBoids.append(LearningBoid(650, 400, 90))
+    #learnerBoid = LearningBoid(450, 300, 90)
+    #learnerBoid2 = LearningBoid(350, 310, 90)
 
-    # Define the start state that will be passed to our learning algorithm
-    state = ((learnerBoid.x, learnerBoid.y, learnerBoid.angle), (leaderBoid.x, leaderBoid.y, learnerBoid.angle), leaderBoid.speed, (width, height))
-    state2 = ((learnerBoid2.x, learnerBoid2.y, learnerBoid2.angle), (leaderBoid.x, leaderBoid.y, learnerBoid.angle), leaderBoid.speed, (width, height))
+    # Define the start states that will be passed to our learning algorithm
+    states = []
+    for boid in learnedBoids:
+        states.append(((boid.x, boid.y, boid.angle), (leaderBoid.x, leaderBoid.y, leaderBoid.angle), leaderBoid.speed, (width, height)))
+    
+    #state = ((learnerBoid.x, learnerBoid.y, learnerBoid.angle), (leaderBoid.x, leaderBoid.y, learnerBoid.angle), leaderBoid.speed, (width, height))
+    #state2 = ((learnerBoid2.x, learnerBoid2.y, learnerBoid2.angle), (leaderBoid.x, leaderBoid.y, learnerBoid.angle), leaderBoid.speed, (width, height))
 
 
     while 1:
@@ -389,19 +398,28 @@ def test_rl(rl):
         # Move both boids
         leaderBoid.move()
 
-        action = rl.getAction(state)
-        action2 = rl.getAction(state2)
-        learnerBoid.move(action)
-        learnerBoid2.move(action2)
+        # Move the followers
+        for i in range(len(learnedBoids)):
+            action = rl.getAction(states[i])
+            learnedBoids[i].move(action)
+        
+        #action = rl.getAction(state)
+        #action2 = rl.getAction(state2)
+        #learnerBoid.move(action)
+        #learnerBoid2.move(action2)
 
-        # Calculate the new state
-        newState = ((learnerBoid.x, learnerBoid.y, learnerBoid.angle), (leaderBoid.x, leaderBoid.y, learnerBoid.angle), leaderBoid.speed, (width, height))
-        newState2 = ((learnerBoid2.x, learnerBoid2.y, learnerBoid2.angle), (leaderBoid.x, leaderBoid.y, learnerBoid.angle), leaderBoid.speed, (width, height))
+        # Calculate the new states
+        for i in range(len(states)):
+            states[i] = ((learnedBoids[i].x, learnedBoids[i].y, learnedBoids[i].angle), (leaderBoid.x, leaderBoid.y, leaderBoid.angle), leaderBoid.speed, (width, height))
+        
+        #newState = ((learnerBoid.x, learnerBoid.y, learnerBoid.angle), (leaderBoid.x, leaderBoid.y, learnerBoid.angle), leaderBoid.speed, (width, height))
+        #newState2 = ((learnerBoid2.x, learnerBoid2.y, learnerBoid2.angle), (leaderBoid.x, leaderBoid.y, learnerBoid.angle), leaderBoid.speed, (width, height))
     
         screen.fill(white)
 
-        state = newState
-        state2 = newState2
+        #state = newState
+        #state2 = newState2
+
         # Draw the boids
         # Draw the leader
         boidRect = pygame.Rect(leadrect)
@@ -409,16 +427,17 @@ def test_rl(rl):
         boidRect.y = leaderBoid.y
         screen.blit(lead, boidRect)
 
-        # Draw the learner
-        boidRect = pygame.Rect(birdrect)
-        boidRect.x = learnerBoid.x
-        boidRect.y = learnerBoid.y
-        screen.blit(bird, boidRect)
+        # Draw the learners
+        for boid in learnedBoids:
+            boidRect = pygame.Rect(birdrect)
+            boidRect.x = boid.x
+            boidRect.y = boid.y
+            screen.blit(bird, boidRect)
 
-        boidRect = pygame.Rect(birdrect)
-        boidRect.x = learnerBoid2.x
-        boidRect.y = learnerBoid2.y
-        screen.blit(bird, boidRect)
+        #boidRect = pygame.Rect(birdrect)
+        #boidRect.x = learnerBoid2.x
+        #boidRect.y = learnerBoid2.y
+        #screen.blit(bird, boidRect)
         
         pygame.display.flip()
         pygame.time.delay(1)
@@ -429,7 +448,7 @@ def test_rl(rl):
 # RL algorithm according to the dynamics of the MDP.
 # Each trial will run for at most |maxIterations|.
 # Return the list of rewards that we get for each trial.
-def simulate(rl, numTrials=45, maxIterations=1000, verbose=False,
+def simulate(rl, numTrials=45, maxIterations=5000, verbose=False,
              sort=False):
     # Return i in [0, ..., len(probs)-1] with probability probs[i].
     def sample(probs):
@@ -464,7 +483,10 @@ def simulate(rl, numTrials=45, maxIterations=1000, verbose=False,
         # Base reward on how the distance changes
         if distance_new < crashdistance:
             #reward = -110
-            reward = -35
+            if distance_old <= distance_new:
+                reward = 35
+            else:
+                reward = -45
         elif distance_old > distance_new:
             #reward = 400
             reward = 5
@@ -473,7 +495,7 @@ def simulate(rl, numTrials=45, maxIterations=1000, verbose=False,
                 #reward = -35
             #reward = -150
             #else:
-                reward = -30
+            reward = -30
         #elif distance_new > 35:
             #reward = -35
         #else:
@@ -501,7 +523,7 @@ def simulate(rl, numTrials=45, maxIterations=1000, verbose=False,
         learnerBoid = LearningBoid(450, 300, 90)
 
         # Define the start state that will be passed to our learning algorithm
-        state = ((learnerBoid.x, learnerBoid.y, learnerBoid.angle), (leaderBoid.x, leaderBoid.y, learnerBoid.angle), leaderBoid.speed, (width, height))
+        state = ((learnerBoid.x, learnerBoid.y, learnerBoid.angle), (leaderBoid.x, leaderBoid.y, leaderBoid.angle), leaderBoid.speed, (width, height))
 
         # We have to define the start state. We should start the bird close to the
         # follow bird
