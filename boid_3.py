@@ -18,7 +18,7 @@ maxVelocity = 4
 numBoids = 0
 boids = []
 
-crashdistance = 20
+crashdistance = 60
 
 
 leader_exists = True
@@ -487,22 +487,15 @@ def simulate(rl, numTrials=45, maxIterations=1000, verbose=False,
 
         reward = 0
         # Base reward on how the distance changes
-        if distance_new == 0:
-            reward = -1000
 
-        elif distance_new < crashdistance:
-            if distance_old <= distance_new:
-                 reward = 70
-            # else:
-
-            reward = (-500) * (1/distance_new)
-
+        if distance_new < crashdistance:
+            reward = - 2*(1/distance_new)
         elif distance_old > distance_new:
-            reward = 10
-            reward += 500 * (1/distance_new)
+            reward = distance_new / float(8)
+            # reward += (1/distance_new)
         elif distance_old < distance_new:
-            reward = -10
-            reward += 500 * (1/distance_new)
+            reward = - distance_new / float(2)
+            # reward -= (1/distance_new)
 
         return reward
 
