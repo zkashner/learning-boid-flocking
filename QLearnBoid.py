@@ -21,10 +21,11 @@ class QLearnBoid():
         self.numIters = 0
 
     # Return the Q function associated with the weights and features
+
     def getQ(self, state, action):
         score = 0
-        for f, v in self.featureExtractor(state, action):
-            score += self.weights[f] * v
+        for f, f_value in self.featureExtractor(state, action):
+            score += self.weights[f] * f_value
         return score
 
     # This algorithm will produce an action given a state.
@@ -37,10 +38,11 @@ class QLearnBoid():
         else:
             return max((self.getQ(state, action), action) for action in self.actions(state))[1]
 
+    # normalizes weights by scaling each weight by 100/sum of magnitude of the weights
     def normalizeWeights(self):
         score = 0
         for f in self.weights:
-            score += self.weights[f]
+            score += abs(self.weights[f])
 
         for f in self.weights:
             self.weights[f] = 100*self.weights[f]/float(abs(score))
@@ -48,38 +50,27 @@ class QLearnBoid():
     # Call this function to get the step size to update the weights.
     def getStepSize(self):
         return 1.0 / math.sqrt(self.numIters)
-        #return 1.0 / self.numIters
 
+    #helper function
     def printWeights(self):
         print self.weights
 
-    # We will call this function with (s, a, r, s'), which you should use to update |weights|.
-    # Note that if s is a terminal state, then s' will be None.  Remember to check for this.
-    # You should update the weights using self.getStepSize(); use
-    # self.getQ() to compute the current estimate of the parameters.
+    # We will call this function with (s, a, r, s'), used to update |weights|.
     def incorporateFeedback(self, state, action, reward, newState):
-        # BEGIN_YOUR_CODE (our solution is 12 lines of code, but don't worry if you deviate from this)
         # w = w - n(Qopt(s,a) - (r + gamma(Vopt(s'))))phi(s, a)
         # Calc Vopt as max(Qopt(s', a') for all actions a')
         # Terminal state so no need to update
-        #if newState == None:
-            #Vopt = 0 
+        
         v_opt = 0
         if newState != None:
             v_opt = max(self.getQ(newState, newAction) for newAction in self.actions(newState))
         
         coefficient = self.getStepSize() * (self.getQ(state, action) - reward - self.discount*v_opt)
-        #print coefficient
-        for f, v in self.featureExtractor(state, action):
-            #if f == 'too-close':
-                #print 'v: %f, c: %f, mult: %f' % (v , coefficient, v * coefficient)
-            self.weights[f] -= v * coefficient
         
-        #self.normalizeWeights()
-        #print(self.weights)
-        # END_YOUR_CODE
+        for f, v in self.featureExtractor(state, action):
+            self.weights[f] -= (v * coefficient)
 
-
+#caculates euclidean distance
 def distance(loc1, loc2):
     return math.sqrt((loc1[0] - loc2[0])**2 + (loc1[1] - loc2[1])**2)
 
@@ -88,86 +79,9 @@ def distance(loc1, loc2):
 def sub(loc2, loc1):
     return (loc2[0] - loc1[0], loc2[1] - loc1[1])
 
-    
 
 def followLeaderBoidFeatureExtractorV2(state, action):
-    # State features
-    # Pos of boid
-    # Current direction of the boid
-    # Pos of leader
-    boid, leader, velocity = state
-    features = []
-
-    # Extract the Boid's location in space and direction
-    boid_x, boid_y, boid_angle = boid
-    # Extract the leader's location and direction
-    leader_x, leader_y, leader_angle = leader
-
-    # Calculate the distance between the boid and the leader
-    # before moving. 
-    old_distance = distance((boid_x, boid_y), leader)
-    old_angle = boid_angle
-    # Try not moving
-    if action != None:
-        boid_angle += action
-        # Perform the action
-        direction_x = math.sin(math.radians(boid_angle))
-        direction_y = -math.cos(math.radians(boid_angle))
-
-
-        # calculate the position from the direction and speed
-        
-        boid_x += direction_x * 3 
-        boid_y += direction_y * 3
-
-    updated_distance = distance((boid_x, boid_y), leader)
-    #print updated_distance
-
-    # print 'action: %f, distance: %f' %(action, updated_distance)
-
-    #features.append(('distance', updated_distance))
-
-    # Try inverse
-    #features.append(('distance-delta', updated_distance - old_distance))
-    distance_delta = updated_distance - old_distance
-    #distance_delta_val = 1.0 / distance_delta if distance_delta != 0 else 1.0 / - 0.5
-    features.append(('distance-delta', distance_delta))
-
-
-    #features.append(('inverse-distance', 1.0/updated_distance))
-
-    # Play with this
-    features.append(('too-close', 1.0 if updated_distance < 20 else 0))
-
-    # Can we make them go toward the same direction?
-    # Compare the difference in angle before and after move
-    angle_delta = math.fabs(math.fabs(old_angle - leader_angle) - math.fabs(boid_angle - leader_angle))
-    angle_delta = math.fabs(boid_angle - leader_angle)
-    angle_delta_val = 1.0 / angle_delta if angle_delta != 0 else 1
-    features.append(('angle-direction', angle_delta_val))
-
-    min_side_dist = float('inf')
-    for i in range(2):
-        dist = distance((boid_x, boid_y), (boid_x, i * size[1]))
-        if dist < min_side_dist:
-            min_side_dist = dist
-
-    for i in range(2):
-        dist = distance((boid_x, boid_y), (i * size[0], boid_y))
-        if dist < min_side_dist:
-            min_side_dist = dist
-
-    #features.append(('side-distance', 1.0/min_side_dist))
-
-    return features
-
-# Think of other features
-
-def followTheLeaderBoidFeatureExtractor(state, action):
-    # State features
-    # Pos of boid
-    # Current direction of the boid
-    # Pos of leader
+    # State features: Boid (x, y, angle), Pos of leader (x, y, angle), Set velocity
     boid, leader, velocity, size = state
     features = []
 
@@ -179,37 +93,22 @@ def followTheLeaderBoidFeatureExtractor(state, action):
     # Try not moving
     if action != None:
         boid_angle += action
-        # Perform the action
         direction_x = math.sin(math.radians(boid_angle))
         direction_y = -math.cos(math.radians(boid_angle))
 
-
         # calculate the position from the direction and speed
-        
-        boid_x += direction_x * 3 
-        boid_y += direction_y * 3
+        boid_x += direction_x * velocity
+        boid_y += direction_y * velocity
 
     updated_distance = distance((boid_x, boid_y), leader)
-    #print updated_distance
 
-    # print 'action: %f, distance: %f' %(action, updated_distance)
-
-    #features.append(('distance', updated_distance))
-
-    # Try inverse
-    #features.append(('distance-delta', updated_distance - old_distance))
     distance_delta = updated_distance - old_distance
-    #distance_delta_val = 1.0 / distance_delta if distance_delta != 0 else 1.0 / - 0.5
     features.append(('distance-delta', distance_delta))
 
-
-    #features.append(('inverse-distance', 1.0/updated_distance))
-
-    # Play with this
+    # Saying if we are going to crash into the other bird (the number 20 can be changed)
     features.append(('too-close', 1.0 if updated_distance < 20 else 0))
-
-    # Can we make them go toward the same direction?
-    # Compare the difference in angle before and after move
+    
+    # feauture to see simlarity of angels, compare the difference in angle before and after move
     angle_delta = math.fabs(math.fabs(old_angle - leader_angle) - math.fabs(boid_angle - leader_angle))
     angle_delta = math.fabs(boid_angle - leader_angle)
     angle_delta_val = 1.0 / angle_delta if angle_delta != 0 else 1
@@ -226,9 +125,80 @@ def followTheLeaderBoidFeatureExtractor(state, action):
         if dist < min_side_dist:
             min_side_dist = dist
 
-    #features.append(('side-distance', 1.0/min_side_dist))
-
     return features
+
+
+   
+
+
+
+# # Think of other features
+# def followTheLeaderBoidFeatureExtractor(state, action):
+#     # State features
+#     # Pos of boid
+#     # Current direction of the boid
+#     # Pos of leader
+#     boid, leader, velocity, size = state
+#     features = []
+
+#     boid_x, boid_y, boid_angle = boid
+#     leader_x, leader_y, leader_angle = leader
+
+#     old_distance = distance((boid_x, boid_y), leader)
+#     old_angle = boid_angle
+#     # Try not moving
+#     if action != None:
+#         boid_angle += action
+#         # Perform the action
+#         direction_x = math.sin(math.radians(boid_angle))
+#         direction_y = -math.cos(math.radians(boid_angle))
+
+
+#         # calculate the position from the direction and speed
+        
+#         boid_x += direction_x * 3 
+#         boid_y += direction_y * 3
+
+#     updated_distance = distance((boid_x, boid_y), leader)
+#     #print updated_distance
+
+#     # print 'action: %f, distance: %f' %(action, updated_distance)
+
+#     #features.append(('distance', updated_distance))
+
+#     # Try inverse
+#     #features.append(('distance-delta', updated_distance - old_distance))
+#     distance_delta = updated_distance - old_distance
+#     #distance_delta_val = 1.0 / distance_delta if distance_delta != 0 else 1.0 / - 0.5
+#     features.append(('distance-delta', distance_delta))
+
+
+#     #features.append(('inverse-distance', 1.0/updated_distance))
+
+#     # Play with this
+#     features.append(('too-close', 1.0 if updated_distance < 20 else 0))
+
+#     # Can we make them go toward the same direction?
+#     # Compare the difference in angle before and after move
+#     angle_delta = math.fabs(math.fabs(old_angle - leader_angle) - math.fabs(boid_angle - leader_angle))
+#     angle_delta = math.fabs(boid_angle - leader_angle)
+#     angle_delta_val = 1.0 / angle_delta if angle_delta != 0 else 1
+#     features.append(('angle-direction', angle_delta_val))
+
+#     min_side_dist = float('inf')
+#     for i in range(2):
+#         dist = distance((boid_x, boid_y), (boid_x, i * size[1]))
+#         if dist < min_side_dist:
+#             min_side_dist = dist
+
+#     for i in range(2):
+#         dist = distance((boid_x, boid_y), (i * size[0], boid_y))
+#         if dist < min_side_dist:
+#             min_side_dist = dist
+
+#     #features.append(('side-distance', 1.0/min_side_dist))
+
+#     return features
     '''
     dx, dy = action
 

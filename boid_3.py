@@ -5,7 +5,7 @@
 import sys, pygame, random, math
 import QLearnBoid
 from QLearnBoid import QLearnBoid
-from QLearnBoid import followTheLeaderBoidFeatureExtractor, distance
+from QLearnBoid import followLeaderBoidFeatureExtractorV2, distance
 
 pygame.init()
 
@@ -601,7 +601,7 @@ def actions(state):
     return [None, -45, -35, -20, -10, -5, -2, 0, 2, 5, 10, 20, 35, 45]
     #return [None, -45, 0, 45, 90, -90, 135, -135, 180]
 
-rl = QLearnBoid(actions, 0.05, followTheLeaderBoidFeatureExtractor)
+rl = QLearnBoid(actions, 0.05, followLeaderBoidFeatureExtractorV2)
 results, following = simulate(rl)
 print following
 rl.printWeights()
