@@ -128,10 +128,14 @@ class LeadBoid(Boid):
     def __init__(self, x, y):
         self.x = x
         self.y = y
-        self.velocityX = random.randint(1, 10) / 10.0
-        self.velocityY = random.randint(1, 10) / 10.0
-        self.speed = 3
+
+        self.speed = 2
         self.angle = 0.0
+        self.direction = [0, 0]
+        self.stepCounts = 0
+        self.multiple = 1
+        self.velocityX = random.uniform(-1,1)
+        self.velocityY = random.uniform(-1,1)
 
     "Move closer to a set of boids"
     def moveCloser(self, boids):
@@ -147,16 +151,45 @@ class LeadBoid(Boid):
         
     "Perform actual movement based on our velocity"
     def move(self):
-        self.velocityX += random.uniform(-1,1)
-        self.velocityY += random.uniform(-1,1)
-        if self.velocityX**2 + self.velocityY**2 > maxVelocity**2:
-            scaleFactor = maxVelocity / max(abs(self.velocityX), abs(self.velocityY))
-            self.velocityX *= scaleFactor
-            self.velocityY *= scaleFactor
-        
-        self.x += self.velocityX
-        self.y += self.velocityY
 
+        if self.stepCounts == 20:
+            self.multiple = random.uniform(.8,1.2)
+            self.stepCounts = 0
+            if self.angle == 0: 
+                self.angle += 20
+        else:
+            self.multiple = 1
+            self.stepCounts += 1
+
+
+        self.angle *= self.multiple
+        # self.angle += 1
+        self.angle = self.angle % 360
+        self.direction[0] = math.sin(-math.radians(self.angle))
+        self.direction[1] = -math.cos(math.radians(self.angle))
+
+        # calculate the position from the direction and speed
+        self.x += self.direction[0]*self.speed
+        self.y += self.direction[1]*self.speed
+
+        if self.x <= 10 or self.x >= width - 10:
+            self.angle += 90
+        if self.y <= 10 or self.y >= height - 10:
+            self.angle += 90
+
+
+        # self.velocityX += random.uniform(-1,1)
+        # self.velocityY += random.uniform(-1,1)
+        # if self.velocityX**2 + self.velocityY**2 > maxVelocity**2:
+        #     scaleFactor = maxVelocity / max(abs(self.velocityX), abs(self.velocityY))
+        #     self.velocityX *= scaleFactor
+        #     self.velocityY *= scaleFactor
+        
+        # self.x += self.velocityX
+        # self.y += self.velocityY
+
+        
+       
         # Try wrap around - may need variable width and hieght
         #self.x = (self.x + width) % width
         #self.y = (self.y + height) % height
@@ -201,7 +234,7 @@ class StraightLineBoid(Boid):
         #self.y = (self.y + height) % height
 
 class LearningBoid():
-    def __init__(self, x, y, angle = 0.0, speed = 3): 
+    def __init__(self, x, y, angle = 0.0, speed = 2): 
         self.x = x
         self.y = y
         # move across the screen
@@ -337,7 +370,7 @@ def test_rl(rl):
     leadrect = lead.get_rect()
 
     #leaderBoid = StraightLineBoid(55, height / 2.0)
-    leaderBoid = CircleBoid(500, 300)
+    leaderBoid = LeadBoid(500, 300)
     #leaderBoid = LeadBoid(55, height / 2.0)
     # Define the start state for our rl algorithm
     #learnerBoid = LearningBoid(25, height / 2.0, 90)
@@ -440,7 +473,7 @@ def simulate(rl, numTrials=45, maxIterations=1000, verbose=False,
                 #reward = -35
             #reward = -150
             #else:
-                reward = -5
+                reward = -30
         #elif distance_new > 35:
             #reward = -35
         #else:
@@ -462,7 +495,7 @@ def simulate(rl, numTrials=45, maxIterations=1000, verbose=False,
         # the learning follower
         #leaderBoid = StraightLineBoid(55, height / 2.0)
         #leaderBoid = LeadBoid(55, height / 2.0)
-        leaderBoid = CircleBoid(500, 300)
+        leaderBoid = LeadBoid(500, 300)
         # Define the start state for our rl algorithm
         #learnerBoid = LearningBoid(25, height / 2.0, 90)
         learnerBoid = LearningBoid(450, 300, 90)
