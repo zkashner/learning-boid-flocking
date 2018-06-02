@@ -379,6 +379,8 @@ def test_rl(rl):
     learnedBoids.append(LearningBoid(350, 310, 90))
     learnedBoids.append(LearningBoid(575, 350, 90))
     learnedBoids.append(LearningBoid(650, 400, 90))
+    # Set weights
+    #rl.weights = {"distance-delta": -1, "too-close": -5}
     #learnerBoid = LearningBoid(450, 300, 90)
     #learnerBoid2 = LearningBoid(350, 310, 90)
 
@@ -390,10 +392,11 @@ def test_rl(rl):
     #state = ((learnerBoid.x, learnerBoid.y, learnerBoid.angle), (leaderBoid.x, leaderBoid.y, learnerBoid.angle), leaderBoid.speed, (width, height))
     #state2 = ((learnerBoid2.x, learnerBoid2.y, learnerBoid2.angle), (leaderBoid.x, leaderBoid.y, learnerBoid.angle), leaderBoid.speed, (width, height))
 
-
     while 1:
         for event in pygame.event.get():
             if event.type == pygame.QUIT: sys.exit()
+
+    
 
         # Move both boids
         leaderBoid.move()
@@ -448,7 +451,7 @@ def test_rl(rl):
 # RL algorithm according to the dynamics of the MDP.
 # Each trial will run for at most |maxIterations|.
 # Return the list of rewards that we get for each trial.
-def simulate(rl, numTrials=45, maxIterations=5000, verbose=False,
+def simulate(rl, numTrials=45, maxIterations=1000, verbose=False,
              sort=False):
     # Return i in [0, ..., len(probs)-1] with probability probs[i].
     def sample(probs):
@@ -484,7 +487,7 @@ def simulate(rl, numTrials=45, maxIterations=5000, verbose=False,
         if distance_new < crashdistance:
             #reward = -110
             if distance_old <= distance_new:
-                reward = 35
+                reward = 45
             else:
                 reward = -45
         elif distance_old > distance_new:
@@ -495,7 +498,7 @@ def simulate(rl, numTrials=45, maxIterations=5000, verbose=False,
                 #reward = -35
             #reward = -150
             #else:
-            reward = -30
+            reward = -5
         #elif distance_new > 35:
             #reward = -35
         #else:
@@ -653,10 +656,10 @@ def simulate_fixed(rl, numTrials=10, maxIterations=1000, verbose=False,
 # Define the actions for the boids
 # as the angles that can turn
 def actions(state):
-    return [None, -45, -35, -20, -10, -5, -2, 0, 2, 5, 10, 20, 35, 45]
+    return [None, -45, -35, -20, -10, -5, -2, 0, 2, 5, 10, 20, 35, 45, 180]
     #return [None, -45, 0, 45, 90, -90, 135, -135, 180]
 
-rl = QLearnBoid(actions, 0.05, followLeaderBoidFeatureExtractorV2)
+rl = QLearnBoid(actions, 0.9, followLeaderBoidFeatureExtractorV2)
 results, following = simulate(rl)
 print following
 rl.printWeights()

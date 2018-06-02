@@ -8,7 +8,7 @@ from collections import defaultdict
 # explorationProb: the epsilon value indicating how frequently the policy
 # returns a random action
 class QLearnBoid():
-    def __init__(self, actions, discount, featureExtractor, explorationProb=0.1):
+    def __init__(self, actions, discount, featureExtractor, explorationProb=0.2):
         self.actions = actions
         self.discount = discount
         self.featureExtractor = featureExtractor
