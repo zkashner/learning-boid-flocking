@@ -89,6 +89,78 @@ def sub(loc2, loc1):
     return (loc2[0] - loc1[0], loc2[1] - loc1[1])
 
     
+
+def followLeaderBoidFeatureExtractorV2(state, action):
+    # State features
+    # Pos of boid
+    # Current direction of the boid
+    # Pos of leader
+    boid, leader, velocity = state
+    features = []
+
+    # Extract the Boid's location in space and direction
+    boid_x, boid_y, boid_angle = boid
+    # Extract the leader's location and direction
+    leader_x, leader_y, leader_angle = leader
+
+    # Calculate the distance between the boid and the leader
+    # before moving. 
+    old_distance = distance((boid_x, boid_y), leader)
+    old_angle = boid_angle
+    # Try not moving
+    if action != None:
+        boid_angle += action
+        # Perform the action
+        direction_x = math.sin(math.radians(boid_angle))
+        direction_y = -math.cos(math.radians(boid_angle))
+
+
+        # calculate the position from the direction and speed
+        
+        boid_x += direction_x * 3 
+        boid_y += direction_y * 3
+
+    updated_distance = distance((boid_x, boid_y), leader)
+    #print updated_distance
+
+    # print 'action: %f, distance: %f' %(action, updated_distance)
+
+    #features.append(('distance', updated_distance))
+
+    # Try inverse
+    #features.append(('distance-delta', updated_distance - old_distance))
+    distance_delta = updated_distance - old_distance
+    #distance_delta_val = 1.0 / distance_delta if distance_delta != 0 else 1.0 / - 0.5
+    features.append(('distance-delta', distance_delta))
+
+
+    #features.append(('inverse-distance', 1.0/updated_distance))
+
+    # Play with this
+    features.append(('too-close', 1.0 if updated_distance < 20 else 0))
+
+    # Can we make them go toward the same direction?
+    # Compare the difference in angle before and after move
+    angle_delta = math.fabs(math.fabs(old_angle - leader_angle) - math.fabs(boid_angle - leader_angle))
+    angle_delta = math.fabs(boid_angle - leader_angle)
+    angle_delta_val = 1.0 / angle_delta if angle_delta != 0 else 1
+    features.append(('angle-direction', angle_delta_val))
+
+    min_side_dist = float('inf')
+    for i in range(2):
+        dist = distance((boid_x, boid_y), (boid_x, i * size[1]))
+        if dist < min_side_dist:
+            min_side_dist = dist
+
+    for i in range(2):
+        dist = distance((boid_x, boid_y), (i * size[0], boid_y))
+        if dist < min_side_dist:
+            min_side_dist = dist
+
+    #features.append(('side-distance', 1.0/min_side_dist))
+
+    return features
+
 # Think of other features
 
 def followTheLeaderBoidFeatureExtractor(state, action):
