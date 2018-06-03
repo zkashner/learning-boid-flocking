@@ -8,7 +8,7 @@ from collections import defaultdict
 # explorationProb: the epsilon value indicating how frequently the policy
 # returns a random action
 class QLearnBoid():
-    def __init__(self, actions, discount, featureExtractor, explorationProb=0.1):
+    def __init__(self, actions, discount, featureExtractor, explorationProb=0.2):
         self.actions = actions
         self.discount = discount
         self.featureExtractor = featureExtractor
@@ -68,6 +68,10 @@ class QLearnBoid():
         coefficient = self.getStepSize() * (self.getQ(state, action) - reward - self.discount*v_opt)
         
         for f, v in self.featureExtractor(state, action):
+            #if f == 'too-close':
+                #if v != 0:
+                    #print "value: %f, reward: %f" % (v, reward)
+                    
             self.weights[f] -= (v * coefficient)
 
 #caculates euclidean distance
@@ -107,12 +111,18 @@ def followLeaderBoidFeatureExtractorV2(state, action):
 
     updated_distance = distance((boid_x, boid_y), leader)
 
+    # Try updating the location of the leader
+    #direction_lead_x = math.sin(math.radians(leader_angle))
+    #direction_lead_y = -math.cos(math.radians(leader_angle))
+    #leader_x += direction_lead_x * 3
+    #leader_y += direction_lead_y * 3
+    #updated_distance = distance((boid_x, boid_y), (leader_x, leader_y))
     
 
     distance_delta = updated_distance - old_distance
     # Saying if we are going to crash into the other bird (the number 20 can be changed)
-    if updated_distance < 60:
-        features.append(('too-close', distance_delta))
+    if updated_distance < 20:
+        features.append(('too-close', 1 / updated_distance))
         features.append(('distance-delta', 0))
         features.append(('distance', 0))
     else:

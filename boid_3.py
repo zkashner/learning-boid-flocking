@@ -90,12 +90,13 @@ obstacles = defineMaze()
 black = 0, 0, 0
 white = 255, 255, 255
 minvel, maxvel = 0, 3
+RED = [255, 0, 0]
 
 maxVelocity = 4
 numBoids = 0
 boids = []
 
-crashdistance = 60
+crashdistance = 20
 
 
 leader_exists = True
@@ -203,7 +204,7 @@ class Boid:
 
 
 class LeadBoid(Boid):
-    def __init__(self, x, y):
+    def __init__(self, x, y, isTraining=False):
         self.x = x
         self.y = y
 
@@ -214,6 +215,7 @@ class LeadBoid(Boid):
         self.multiple = 1
         self.velocityX = random.uniform(-1,1)
         self.velocityY = random.uniform(-1,1)
+        self.isTraining = isTraining
 
     "Move closer to a set of boids"
     def moveCloser(self, boids):
@@ -250,10 +252,11 @@ class LeadBoid(Boid):
         self.x += self.direction[0]*self.speed
         self.y += self.direction[1]*self.speed
 
-        if self.x <= 10 or self.x >= width - 10:
-            self.angle += 90
-        if self.y <= 10 or self.y >= height - 10:
-            self.angle += 90
+        if not self.isTraining:
+            if self.x <= 10 or self.x >= width - 10:
+                self.angle += 90
+            if self.y <= 10 or self.y >= height - 10:
+                self.angle += 90
 
 
         # self.velocityX += random.uniform(-1,1)
@@ -485,7 +488,7 @@ def test_rl(rl):
     leadrect = lead.get_rect()
 
     #leaderBoid = StraightLineBoid(55, height / 2.0)
-    leaderBoid = LeadBoid(500, 300)
+    leaderBoid = LeadBoid(500, 300, False)
     #leaderBoid = LeadBoid(55, height / 2.0)
     # Define the start state for our rl algorithm
     #learnerBoid = LearningBoid(25, height / 2.0, 90)
@@ -494,6 +497,8 @@ def test_rl(rl):
     learnedBoids.append(LearningBoid(350, 310, 90))
     learnedBoids.append(LearningBoid(575, 350, 90))
     learnedBoids.append(LearningBoid(650, 400, 90))
+    # Set weights
+    #rl.weights = {"distance-delta": -1, "too-close": -5}
     #learnerBoid = LearningBoid(450, 300, 90)
     #learnerBoid2 = LearningBoid(350, 310, 90)
 
@@ -505,10 +510,11 @@ def test_rl(rl):
     #state = ((learnerBoid.x, learnerBoid.y, learnerBoid.angle), (leaderBoid.x, leaderBoid.y, learnerBoid.angle), leaderBoid.speed, (width, height))
     #state2 = ((learnerBoid2.x, learnerBoid2.y, learnerBoid2.angle), (leaderBoid.x, leaderBoid.y, learnerBoid.angle), leaderBoid.speed, (width, height))
 
-
     while 1:
         for event in pygame.event.get():
             if event.type == pygame.QUIT: sys.exit()
+
+    
 
         # Move both boids
         leaderBoid.move()
@@ -541,6 +547,7 @@ def test_rl(rl):
         boidRect.x = leaderBoid.x
         boidRect.y = leaderBoid.y
         screen.blit(lead, boidRect)
+        pygame.draw.circle(screen, RED, [int(leaderBoid.x), int(leaderBoid.y)], 20, 1)
 
         # Draw the learners
         for boid in learnedBoids:
@@ -635,7 +642,7 @@ def test_maze(rl):
 # RL algorithm according to the dynamics of the MDP.
 # Each trial will run for at most |maxIterations|.
 # Return the list of rewards that we get for each trial.
-def simulate(rl, numTrials=45, maxIterations=1000, verbose=False,
+def simulate(rl, numTrials=20, maxIterations=1000, verbose=False,
              sort=False):
     # Return i in [0, ..., len(probs)-1] with probability probs[i].
     def sample(probs):
@@ -650,7 +657,7 @@ def simulate(rl, numTrials=45, maxIterations=1000, verbose=False,
         # Define following as being within 20-30 units
         #if not(distance(state[0], state[1]) > 20 and distance(state[0], state[1]) <= 35):
             #print distance(state[0], state[1])
-        return distance(state[0], state[1]) > 20 and distance(state[0], state[1]) <= 35
+        return distance(state[0], state[1]) > crashdistance and distance(state[0], state[1]) <= crashdistance + 15
 
     def reward(prev_state, new_state):
         # We will primarily calculate initial reward 
@@ -665,19 +672,62 @@ def simulate(rl, numTrials=45, maxIterations=1000, verbose=False,
         new_learner_loc = newState[0]
         new_leader_loc = newState[1]
         distance_new = distance(new_learner_loc, new_leader_loc)
+        #distance_new = distance(new_learner_loc, old_leader_loc)
 
         reward = 0
         # Base reward on how the distance changes
+        '''
+        if distance_new == 0:
+            reward = -1000
 
+        elif distance_new < crashdistance:
+            # OLD!!
+            
+            #if distance_old <= distance_new:
+                #reward = 45
+            #else:
+                #reward = -45
+            
+            reward = -45
+            # else:
+
+            reward = (-500) * (1/distance_new)
+        '''
+        '''
         if distance_new < crashdistance:
             reward = - 2*(1/distance_new)
         elif distance_old > distance_new:
+            
+                        # OLD!!
+            
+            # reward = 5
+            reward = 10
+            reward += 500 * (1/distance_new)
+        elif distance_old < distance_new:
+            # OLD!!!
+            # reward = -5
+
+
+            reward = -10
+            reward += 500 * (1/distance_new)
+            
             reward = distance_new / float(8)
             # reward += (1/distance_new)
         elif distance_old < distance_new:
             reward = - distance_new / float(2)
             # reward -= (1/distance_new)
-
+        '''
+        if distance_new < crashdistance:
+            #reward = - 600*(1/distance_new)
+            reward = -600
+            #print reward
+        elif distance_old > distance_new:
+            #reward = distance_new / float(8)
+            reward = 10
+            # reward += (1/distance_new)
+        elif distance_old < distance_new:
+            #reward = - distance_new / float(2)
+            reward = -5
         return reward
 
 
@@ -828,6 +878,8 @@ def simulate(rl, numTrials=45, maxIterations=1000, verbose=False,
 # Define the actions for the boids
 # as the angles that can turn
 def actions(state):
+    # OLD!!
+    # return [None, -45, -35, -20, -10, -5, -2, 0, 2, 5, 10, 20, 35, 45, 180]
     angles = [-45, -35, -20, -10, -5, -2, 0, 2, 5, 10, 20, 35, 45]
     velocities = [-.3, -.2, -.1, 0, .1, .2, .3]
 
