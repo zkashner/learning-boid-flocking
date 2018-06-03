@@ -2,80 +2,80 @@ import math, random
 from collections import defaultdict
 
 
-def defineMaze():
+def defineMaze(buffer):
     obstacles = defaultdict(bool)
     for r in range(1000):
         for c in range(600):
             obstacles[(r,c)] = False
 
-    for r in range(95, 105):
-        for c in range(0, 400):
+    for r in range(100 - buffer, 100 + buffer):
+        for c in range(0, 400 + buffer):
             obstacles[(r,c)] = True
 
-    for r in range(195, 205):
-        for c in range(0, 100):
+    for r in range(200 - buffer, 200 + buffer):
+        for c in range(0, 100 + buffer):
             obstacles[(r,c)] = True
         for c in range(200, 400):
             obstacles[(r,c)] = True
 
-    for r in range(295, 305):
-        for c in range(200, 300):
+    for r in range(300 - buffer, 300 + buffer):
+        for c in range(200 - buffer, 300 + buffer):
             obstacles[(r,c)] = True
 
-    for r in range(395, 405):
-        for c in range(100, 300):
+    for r in range(400 - buffer, 400 + buffer):
+        for c in range(100 - buffer, 300 + buffer):
             obstacles[(r,c)] = True
 
-    for r in range(495, 505):
-        for c in range(100, 500):
+    for r in range(500 - buffer, 500 + buffer):
+        for c in range(100 - buffer, 500 + buffer):
             obstacles[(r,c)] = True
 
-    for r in range(595, 605):
-        for c in range(100, 600):
+    for r in range(600 - buffer, 600 + buffer):
+        for c in range(100 - buffer, 600 + buffer):
             obstacles[(r,c)] = True
 
-    for r in range(695, 705):
-        for c in range(100, 300):
+    for r in range(700 - buffer, 700 + buffer):
+        for c in range(100 - buffer, 300 + buffer):
             obstacles[(r,c)] = True
 
-    for r in range(795, 805):
-        for c in range(300, 500):
+    for r in range(800 - buffer, 800 + buffer):
+        for c in range(300 - buffer, 500 + buffer):
             obstacles[(r,c)] = True
 
-    for r in range(795, 805):
-        for c in range(0, 200):
+    for r in range(800 - buffer, 800 + buffer):
+        for c in range(0 - buffer, 200 + buffer):
             obstacles[(r,c)] = True
 
-    for r in range(895, 905):
-        for c in range(100, 1000):
+    for r in range(900 - buffer, 900 + buffer):
+        for c in range(100 - buffer, 1000 + buffer):
             obstacles[(r,c)] = True
 
-    for r in range(195, 405):
-        for c in range(95, 105):
+    for r in range(200 - buffer, 400 + buffer):
+        for c in range(100 - buffer, 100 + buffer):
             obstacles[(r,c)] = True
 
-    for r in range(495, 605):
-        for c in range(95, 105):
+    for r in range(500 - buffer, 600 + buffer):
+        for c in range(100 - buffer, 100 + buffer):
             obstacles[(r,c)] = True
 
-    for r in range(195, 505):
-        for c in range(395, 405):
+    for r in range(200 - buffer, 500 + buffer):
+        for c in range(400 - buffer, 400 + buffer):
             obstacles[(r,c)] = True
 
-    for r in range(95, 505):
-        for c in range(495, 505):
+    for r in range(100 - buffer, 500 + buffer):
+        for c in range(500 - buffer, 500 + buffer):
             obstacles[(r,c)] = True
 
-    for r in range(695, 805):
-        for c in range(295, 305):
+    for r in range(700 - buffer, 800 + buffer):
+        for c in range(300 - buffer, 300 + buffer):
             obstacles[(r,c)] = True
 
-    for r in range(695, 905):
-        for c in range(495, 505):
+    for r in range(700 - buffer, 900 + buffer):
+        for c in range(500 - buffer, 500 + buffer):
             obstacles[(r,c)] = True
     return obstacles
 
-obstacles = defineMaze()
+obstacles = defineMaze(12)
 
 class QLearnBoidObstacles():
     def __init__(self, actions, discount, featureExtractor, obstacles, explorationProb=0.1):
@@ -150,16 +150,43 @@ def sub(loc2, loc1):
     return (loc2[0] - loc1[0], loc2[1] - loc1[1])
 
 
+def allGood(x, y):
+    poss = [0, 20]
+    x = int(x)
+    y = int(y)
+    for x1 in poss:
+        for y1 in poss:
+            if (x + x1, y + y1) in obstacles:
+                if obstacles[(x + x1,y + y1)]:
+                    return 1
+                else: 
+                    continue
+            else:
+                return 1
+    return 0
+
+
+queue = []
+
+
 def followLeaderBoidFeatureExtractorObstacles(state, action):
     # State features: Boid (x, y, angle), Pos of leader (x, y, angle), Set velocity
     boid, leader, velocity, size = state
     features = []
+
+    while len(queue) <= 16:
+        queue.append(leader)
+
+    old_leader = queue.pop()
 
     boid_x, boid_y, boid_angle = boid
     leader_x, leader_y, leader_angle = leader
 
     old_distance = distance((boid_x, boid_y), leader)
     old_angle = boid_angle
+
+    prev_x = boid_x
+    prev_y = boid_y
     # Try not moving
     if action[0] != None:
         boid_angle += action[0]
@@ -191,45 +218,61 @@ def followLeaderBoidFeatureExtractorObstacles(state, action):
         features.append(('distance-delta', distance_delta))
         features.append(('distance', 1/updated_distance))
     # feauture to see simlarity of angels, compare the difference in angle before and after move
-    angle_delta = math.fabs(math.fabs(old_angle - leader_angle) - math.fabs(boid_angle - leader_angle))
-    angle_delta = math.fabs(boid_angle - leader_angle)
-    angle_delta_val = 1.0 / angle_delta if angle_delta != 0 else 1
+    # angle_delta = math.fabs(math.fabs(old_angle - leader_angle) - math.fabs(boid_angle - leader_angle))
+    # angle_delta = math.fabs(boid_angle - leader_angle)
+    # angle_delta_val = 1.0 / angle_delta if angle_delta != 0 else 1
     #features.append(('angle-direction', angle_delta_val))
 
 
-    min_side_dist = float('inf')
-    for i in range(2):
-        dist = distance((boid_x, boid_y), (boid_x, i * size[1]))
-        if dist < min_side_dist:
-            min_side_dist = dist
+    # min_side_dist = float('inf')
+    # for i in range(2):
+    #     dist = distance((boid_x, boid_y), (boid_x, i * size[1]))
+    #     if dist < min_side_dist:
+    #         min_side_dist = dist
 
-    for i in range(2):
-        dist = distance((boid_x, boid_y), (i * size[0], boid_y))
-        if dist < min_side_dist:
-            min_side_dist = dist
+    # for i in range(2):
+    #     dist = distance((boid_x, boid_y), (i * size[0], boid_y))
+    #     if dist < min_side_dist:
+    #         min_side_dist = dist
 
-    very_nearby = 0
-    bound_very = 3
-    for i in range(-bound_very,bound_very + 1):
-        for j in range(-bound_very,bound_very + 1):
-            key = (boid_x + i, boid_y + j)
-            if key not in obstacles or obstacles[key]:
-                very_nearby = 1
-                break
-    features.append(('very_nearby', very_nearby))
+    # very_nearby = 0
+    # bound_very = 25
+    # for i in range(0,bound_very + 1):
+    #     for j in range(0,bound_very + 1):
+    #         key = (int(boid_x) + i, int(boid_y) + j)
+    #         if key not in obstacles or obstacles[key] == True:
+    #             very_nearby = 1
+    #             break
+    features.append(('very_nearby', allGood(boid_x, boid_y)))
 
 
-    # nearby = 0
-    # bound_medium = 10
-    # if very_nearby == 0:
-    #     for i in range(-bound_medium,bound_medium + 1):
-    #         for j in range(-bound_medium,bound_medium + 1):
-    #             key = (boid_x + i, boid_y + j)
-    #             if key not in obstacles or obstacles[key]:
-    #                 nearby = 1
-    #                 break
-    # else:
-    #     nearby = 1
+    # there = 0
+    # if (int(boid_x), int(boid_y)) not in obstacles or obstacles[key] == True:
+    #     there = 1
+
+    # features.append(('there', there))
+
+
+    # count = 0
+    # for i in range(-15, 35, 4):
+    #     for j in range(-15, 35, 4):
+    #         key = (int(boid_x) + i, int(boid_y) + j)
+    #         if key not in obstacles or obstacles[key] == True:
+    #             count += 1
+
+    # features.append(('count', count))
 
     # features.append(('nearby', nearby))
+
+    # if updated_distance > 100:
+    #     old_distance = distance((prev_x, prev_y), old_leader)
+    #     old_angle = boid_angle
+
+    #     new_updated_distance = distance((boid_x, boid_y), old_leader)
+
+    #     distance_delta = new_updated_distance - old_distance
+    #     features.append(('distance-delta-old', distance_delta))
+    # else:
+    #     features.append(('distance-delta-old', 0))
+
     return features

@@ -147,10 +147,22 @@ class MazeProblem(SearchProblem):
                         else:
                             return False
                 return True
+            multiplier = 1
+
+            # for i in range(-20, 40, 4):
+            #     for j in range(-20, 40, 4):
+            #         key = (x + i, y + j)
+            #         if key in self.obstacles and self.obstacles[key]:
+            #             multiplier = 10
+            #             break
 
             if allGood(x_prime, y):
-                    results.append(((x_prime, y), (x_prime, y), 1))
+                results.append(((x_prime, y), (x_prime, y), multiplier))
             if allGood(x, y_prime):
-                    results.append(((x, y_prime), (x, y_prime), 1))
+                results.append(((x, y_prime), (x, y_prime), multiplier))
+            if allGood(x_prime, y_prime):
+                results.append(((x_prime, y_prime), (x_prime, y_prime), 1.5*multiplier))
+            if allGood(x_prime, y - delt):
+                results.append(((x_prime, y - delt), (x_prime, y - delt), 1.5*multiplier))
         return results   
         #END YOUR CODE

@@ -2,7 +2,7 @@
 # Boid implementation in Python using PyGame
 # Ben Dowling - www.coderholic.com
 
-import sys, pygame, random, math
+import sys, pygame, random, math, os
 import QLearnBoid
 import QLearnBoidO
 import search_util
@@ -16,80 +16,81 @@ pygame.init()
 
 size = width, height = 1000, 600
 
-def defineMaze():
+def defineMaze(buffer):
     obstacles = defaultdict(bool)
     for r in range(width):
         for c in range(height):
             obstacles[(r,c)] = False
 
-    for r in range(95, 105):
-        for c in range(0, 400):
+    for r in range(100 - buffer, 100 + buffer):
+        for c in range(0, 400 + buffer):
             obstacles[(r,c)] = True
 
-    for r in range(195, 205):
-        for c in range(0, 100):
+    for r in range(200 - buffer, 200 + buffer):
+        for c in range(0, 100 + buffer):
             obstacles[(r,c)] = True
         for c in range(200, 400):
             obstacles[(r,c)] = True
 
-    for r in range(295, 305):
-        for c in range(200, 300):
+    for r in range(300 - buffer, 300 + buffer):
+        for c in range(200 - buffer, 300 + buffer):
             obstacles[(r,c)] = True
 
-    for r in range(395, 405):
-        for c in range(100, 300):
+    for r in range(400 - buffer, 400 + buffer):
+        for c in range(100 - buffer, 300 + buffer):
             obstacles[(r,c)] = True
 
-    for r in range(495, 505):
-        for c in range(100, 500):
+    for r in range(500 - buffer, 500 + buffer):
+        for c in range(100 - buffer, 500 + buffer):
             obstacles[(r,c)] = True
 
-    for r in range(595, 605):
-        for c in range(100, 600):
+    for r in range(600 - buffer, 600 + buffer):
+        for c in range(100 - buffer, 600 + buffer):
             obstacles[(r,c)] = True
 
-    for r in range(695, 705):
-        for c in range(100, 300):
+    for r in range(700 - buffer, 700 + buffer):
+        for c in range(100 - buffer, 300 + buffer):
             obstacles[(r,c)] = True
 
-    for r in range(795, 805):
-        for c in range(300, 500):
+    for r in range(800 - buffer, 800 + buffer):
+        for c in range(300 - buffer, 500 + buffer):
             obstacles[(r,c)] = True
 
-    for r in range(795, 805):
-        for c in range(0, 200):
+    for r in range(800 - buffer, 800 + buffer):
+        for c in range(0 - buffer, 200 + buffer):
             obstacles[(r,c)] = True
 
-    for r in range(895, 905):
-        for c in range(100, 1000):
+    for r in range(900 - buffer, 900 + buffer):
+        for c in range(100 - buffer, 1000 + buffer):
             obstacles[(r,c)] = True
 
-    for r in range(195, 405):
-        for c in range(95, 105):
+    for r in range(200 - buffer, 400 + buffer):
+        for c in range(100 - buffer, 100 + buffer):
             obstacles[(r,c)] = True
 
-    for r in range(495, 605):
-        for c in range(95, 105):
+    for r in range(500 - buffer, 600 + buffer):
+        for c in range(100 - buffer, 100 + buffer):
             obstacles[(r,c)] = True
 
-    for r in range(195, 505):
-        for c in range(395, 405):
+    for r in range(200 - buffer, 500 + buffer):
+        for c in range(400 - buffer, 400 + buffer):
             obstacles[(r,c)] = True
 
-    for r in range(95, 505):
-        for c in range(495, 505):
+    for r in range(100 - buffer, 500 + buffer):
+        for c in range(500 - buffer, 500 + buffer):
             obstacles[(r,c)] = True
 
-    for r in range(695, 805):
-        for c in range(295, 305):
+    for r in range(700 - buffer, 800 + buffer):
+        for c in range(300 - buffer, 300 + buffer):
             obstacles[(r,c)] = True
 
-    for r in range(695, 905):
-        for c in range(495, 505):
+    for r in range(700 - buffer, 900 + buffer):
+        for c in range(500 - buffer, 500 + buffer):
             obstacles[(r,c)] = True
     return obstacles
 
-obstacles = defineMaze()
+obstacles = defineMaze(12)
+fat_obstacles = defineMaze(30)
 black = 0, 0, 0
 white = 255, 255, 255
 minvel, maxvel = 0, 3
@@ -365,9 +366,10 @@ class SearchBoid(Boid):
         self.y = 50
         self.step = 0
         self.speed = 3
+        self.angle = 0
 
         search = search_util.UniformCostSearch()
-        search.solve(search_util.MazeProblem((50,50), ((950, 550)), obstacles))
+        search.solve(search_util.MazeProblem((50,50), ((950, 550)), fat_obstacles))
         self.actions = search.actions
 
     "Move closer to a set of boids"
@@ -387,9 +389,18 @@ class SearchBoid(Boid):
         # We want to just move at a constant 5 degree angle
         # calculate the position from the direction and speed
         if self.step < len(self.actions):
+            oldx = self.x
+            oldy = self.y
             self.x = self.actions[self.step][0]
             self.y = self.actions[self.step][1]
             self.step += self.speed
+            if self.x - oldx == 0:
+                self.angle = 90
+                if self.y - oldy > 0:
+                    self.angle = 270
+            else:
+                self.angle = math.degrees(math.atan((self.y - oldy)/(self.x - oldx)))
+
 
 def test_maze(rl):
 
@@ -407,12 +418,12 @@ def test_maze(rl):
     #leaderBoid = LeadBoid(55, height / 2.0)
     # Define the start state for our rl algorithm
     #learnerBoid = LearningBoid(25, height / 2.0, 90)
-    learnerBoid = LearningBoid(25, 25, 90)
-    learnerBoid2 = LearningBoid(25, 75, 90)
+    learnerBoid = LearningBoid(50, 25, 90)
+    learnerBoid2 = LearningBoid(25, 50, 90)
 
     # Define the start state that will be passed to our learning algorithm
-    state = ((learnerBoid.x, learnerBoid.y, learnerBoid.angle), (leaderBoid.x, leaderBoid.y, learnerBoid.angle), leaderBoid.speed, (width, height))
-    state2 = ((learnerBoid2.x, learnerBoid2.y, learnerBoid2.angle), (leaderBoid.x, leaderBoid.y, learnerBoid.angle), leaderBoid.speed, (width, height))
+    state = ((learnerBoid.x, learnerBoid.y, learnerBoid.angle), (leaderBoid.x, leaderBoid.y, leaderBoid.angle), leaderBoid.speed, (width, height))
+    state2 = ((learnerBoid2.x, learnerBoid2.y, learnerBoid2.angle), (leaderBoid.x, leaderBoid.y, leaderBoid.angle), leaderBoid.speed, (width, height))
 
     background_surface = pygame.Surface((width, height))
     background_surface.fill(white)
@@ -465,6 +476,8 @@ def test_maze(rl):
 
 def allGood(x, y):
     poss = [0, 20]
+    x = int(x)
+    y = int(y)
     for x1 in poss:
         for y1 in poss:
             if (x + x1, y + y1) in obstacles:
@@ -480,7 +493,7 @@ def allGood(x, y):
 # RL algorithm according to the dynamics of the MDP.
 # Each trial will run for at most |maxIterations|.
 # Return the list of rewards that we get for each trial.
-def simulate_maze(rl, numTrials=15, maxIterations=2000, verbose=False,
+def simulate_maze(rl, numTrials=50, maxIterations=2000, verbose=False,
              sort=False):
     # Return i in [0, ..., len(probs)-1] with probability probs[i].
     def sample(probs):
@@ -526,7 +539,7 @@ def simulate_maze(rl, numTrials=15, maxIterations=2000, verbose=False,
 
 
         if not allGood(new_learner_loc[0], new_learner_loc[1]):
-            reward = -200
+            return -1000
 
         return reward
 
@@ -589,7 +602,7 @@ def simulate_maze(rl, numTrials=15, maxIterations=2000, verbose=False,
 # Define the actions for the boids
 # as the angles that can turn
 def actions(state):
-    angles = [-45, -35, -20, -10, -5, -2, 0, 2, 5, 10, 20, 35, 45]
+    angles = [-45, -35, -20, -10, -5, -2, 0, 2, 5, 10, 20, 35, 45, 180]
     velocities = [-.3, -.2, -.1, 0, .1, .2, .3]
 
     toReturn = []
@@ -610,5 +623,11 @@ print "***total rewards for this different simulations***"
 #print total_rewards
 rl.explorationProb = 0
 print "--we got here---"
+os.system('say "your program has finished"')
+os.system('say "you should really switch over to that window"')
+os.system('say "3"')
+os.system('say "2"')
+os.system('say "1"')
+
 test_maze(rl)
    
