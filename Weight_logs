@@ -1,0 +1,58 @@
+Weight mile-stones
+
+With Emily's model (checkpoint 1):
+trails = 100
+iterations = 5000
+radius = 60
+defaultdict(<type 'float'>, {'too-close': 2.1320196075519418, 'distance': -138.40251667038757, 'distance-delta': -0.5217765834458251})
+ if distance_new < crashdistance:
+    reward = - 2*(1/distance_new)
+elif distance_old > distance_new:
+    reward = distance_new / float(8)
+    # reward += (1/distance_new)
+elif distance_old < distance_new:
+    reward = - distance_new / float(2)
+    # reward -= (1/distance_new)
+
+return reward
+
+if updated_distance < 60:
+    features.append(('too-close', distance_delta))
+    features.append(('distance-delta', 0))
+    features.append(('distance', 0))
+else:
+    #features.append(('too-close', updated_distance if updated_distance < 20 else 0))
+    features.append(('too-close', 0))
+    features.append(('distance-delta', distance_delta))
+    features.append(('distance', 1/updated_distance))
+
+
+With Jon's model (checkpoint 1):
+traisl = 100
+iterations = 5000
+raduis = 20
+[3663, 4098, 4168, 4077, 4202, 4189, 4146, 3962, 4259, 4194, 4259, 4310, 4342, 3877, 4194, 3949, 4041, 3957, 3925, 4400, 4217, 4056, 3934, 4143, 4245, 3971, 3881, 3988, 4109, 4131, 4265, 4128, 4133, 3933] (good steps)
+defaultdict(<type 'float'>, {'too-close': -3236.6664452086957, 'distance': -2105.3771888555643, 'distance-delta': -80.81887705499148})
+if distance_new < crashdistance:
+    #reward = - 600*(1/distance_new)
+    reward = -600
+    #print reward
+elif distance_old > distance_new:
+    #reward = distance_new / float(8)
+    reward = 10
+    # reward += (1/distance_new)
+elif distance_old < distance_new:
+    #reward = - distance_new / float(2)
+    reward = -5
+return reward
+
+# Saying if we are going to crash into the other bird (the number 20 can be changed)
+if updated_distance < 20:
+    features.append(('too-close', 1 / updated_distance))
+    features.append(('distance-delta', 0))
+    features.append(('distance', 0))
+else:
+    #features.append(('too-close', updated_distance if updated_distance < 20 else 0))
+    features.append(('too-close', 0))
+    features.append(('distance-delta', distance_delta))
+    features.append(('distance', 1/updated_distance))

@@ -121,13 +121,13 @@ def followLeaderBoidFeatureExtractorV2(state, action):
 
     distance_delta = updated_distance - old_distance
     # Saying if we are going to crash into the other bird (the number 20 can be changed)
-    if updated_distance < 60:
-        features.append(('too-close', distance_delta))
+    if updated_distance < 20:
+        features.append(('too-close', 1 / updated_distance))
         features.append(('distance-delta', 0))
         features.append(('distance', 0))
     else:
         #features.append(('too-close', updated_distance if updated_distance < 20 else 0))
-        features.append(('too-close', 0.0))
+        features.append(('too-close', 0))
         features.append(('distance-delta', distance_delta))
         features.append(('distance', 1/updated_distance))
     # feauture to see simlarity of angels, compare the difference in angle before and after move

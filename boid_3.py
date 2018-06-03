@@ -13,12 +13,13 @@ size = width, height = 1000, 600
 black = 0, 0, 0
 white = 255, 255, 255
 minvel, maxvel = 0, 3
+RED = [255, 0, 0]
 
 maxVelocity = 4
 numBoids = 0
 boids = []
 
-crashdistance = 60
+crashdistance = 20
 
 
 leader_exists = True
@@ -437,6 +438,7 @@ def test_rl(rl):
         boidRect.x = leaderBoid.x
         boidRect.y = leaderBoid.y
         screen.blit(lead, boidRect)
+        pygame.draw.circle(screen, RED, [int(leaderBoid.x), int(leaderBoid.y)], 20, 1)
 
         # Draw the learners
         for boid in learnedBoids:
@@ -459,7 +461,7 @@ def test_rl(rl):
 # RL algorithm according to the dynamics of the MDP.
 # Each trial will run for at most |maxIterations|.
 # Return the list of rewards that we get for each trial.
-def simulate(rl, numTrials=45, maxIterations=1000, verbose=False,
+def simulate(rl, numTrials=20, maxIterations=1000, verbose=False,
              sort=False):
     # Return i in [0, ..., len(probs)-1] with probability probs[i].
     def sample(probs):
@@ -474,7 +476,7 @@ def simulate(rl, numTrials=45, maxIterations=1000, verbose=False,
         # Define following as being within 20-30 units
         #if not(distance(state[0], state[1]) > 20 and distance(state[0], state[1]) <= 35):
             #print distance(state[0], state[1])
-        return distance(state[0], state[1]) > 20 and distance(state[0], state[1]) <= 35
+        return distance(state[0], state[1]) > crashdistance and distance(state[0], state[1]) <= crashdistance + 15
 
     def reward(prev_state, new_state):
         # We will primarily calculate initial reward 
@@ -536,11 +538,11 @@ def simulate(rl, numTrials=45, maxIterations=1000, verbose=False,
         '''
         if distance_new < crashdistance:
             #reward = - 600*(1/distance_new)
-            reward = -35
+            reward = -600
             #print reward
         elif distance_old > distance_new:
             #reward = distance_new / float(8)
-            reward = 5
+            reward = 10
             # reward += (1/distance_new)
         elif distance_old < distance_new:
             #reward = - distance_new / float(2)
@@ -556,7 +558,7 @@ def simulate(rl, numTrials=45, maxIterations=1000, verbose=False,
         # the learning follower
         #leaderBoid = StraightLineBoid(55, height / 2.0)
         #leaderBoid = LeadBoid(55, height / 2.0)
-        leaderBoid = LeadBoid(500, 300, True)
+        leaderBoid = LeadBoid(500, 300)
         # Define the start state for our rl algorithm
         #learnerBoid = LearningBoid(25, height / 2.0, 90)
         learnerBoid = LearningBoid(450, 300, 90)
