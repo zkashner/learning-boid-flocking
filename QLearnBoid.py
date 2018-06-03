@@ -78,10 +78,117 @@ class QLearnBoid():
 def distance(loc1, loc2):
     return math.sqrt((loc1[0] - loc2[0])**2 + (loc1[1] - loc2[1])**2)
 
+def distanceObj(bird1, bird2):
+    return math.sqrt((bird1.x - bird2.x)**2 + (bird1.y - bird2.y)**2)
+
+def distanceBirdCoord(loc1, bird):
+    return math.sqrt((loc1[0] - bird.x)**2 + (loc1[1] - bird.y)**2)
+
 # Subtract vectors to get the direction vector
 # loc1 is the old location, loc2 is the new location
 def sub(loc2, loc1):
     return (loc2[0] - loc1[0], loc2[1] - loc1[1])
+
+
+def threeBirdFlock(state, action):
+    # State could be the 2 nearest birds?
+    # Or the k nearest birds
+    boid, leader, birds, velocity = state
+    features = []
+
+    # Distance to the leader
+    dist_leader = distanceObj(boid, leader)
+
+    # Move toward the general direction of the flock
+    # We definitely will make this distance based
+    # Get the average distance of the flock
+    dist = dist_leader
+    avg_x = leader.x
+    avg_y = leader.y
+    for bird in birds:
+        avg_x += bird.x
+        avg_y += bird.y
+        dist += distanceObj(boid, bird)
+    avg_dist = dist / float(len(birds) + 1)
+    centroid = (avg_x / float(len(birds) + 1), avg_y / float(len(birds) + 1))
+    dist_center = distance((boid.x, boid.y), centroid)
+
+    boid_x, boid_y, boid_angle = boid.x, boid.y, boid.angle
+    # Make our move
+    if action[0] != None:
+        boid_angle += action[0]
+        velocity += action[1]
+        if velocity > 3:
+            velocity = 3
+        if velocity < 0:
+            velocity = 0
+        direction_x = math.sin(math.radians(boid_angle))
+        direction_y = -math.cos(math.radians(boid_angle))
+
+        # calculate the position from the direction and speed
+        boid_x += direction_x * velocity
+        boid_y += direction_y * velocity
+
+    # Distance to leader after move
+    updated_distance = distanceBirdCoord((boid_x, boid_y), leader)
+
+    # We still don't want to be too close to anyone!?
+    # We could check if it is too close to any of the birds
+    number_too_close = 0
+    close_birds = []
+    updated_total_dist = updated_distance
+    if updated_distance < 30:
+        close_birds.append(updated_distance)
+    bird_distances = []
+    for bird in birds:
+        new_dist = distanceBirdCoord((boid_x, boid_y), bird)
+        # See if we are too close
+        if new_dist < 30:
+            number_too_close += 1
+            close_birds.append(new_dist)
+
+        updated_total_dist += new_dist
+        bird_distances.append(new_dist)
+    updated_avg_dist = updated_total_dist / float(len(birds) + 1)
+
+    # Make a feature to represent being too close to the first two
+    close_birds.sort()
+    # Closest too-close
+    if len(close_birds) > 0:
+        features.append(('closest', 1.0 / close_birds[0]))
+    else:
+        features.append(('closest', 0))
+
+    if len(close_birds) > 1:
+        features.append(('second', 1.0 / close_birds[0]))
+    else:
+        features.append(('second', 0))
+
+    if len(close_birds) > 0:
+        return features
+
+
+    updated_dist_center = distance((boid_x, boid_y), centroid)
+    features.append(('centroid', updated_dist_center - dist_center))
+    # Lets make a feature that says how many are too close
+    features.append(('num-close', number_too_close))
+
+    # Let's make a feature to see if we got closer to the leader
+    distance_delta = updated_distance - dist_leader
+    features.append(('leader-dela', distance_delta))
+
+    # Make a feature the distance to the "avg" flock
+    avg_delta = updated_avg_dist - avg_dist
+    features.append(('avg-dist', avg_delta))
+
+    return features
+
+
+
+
+
+
+
 
 
 def followLeaderBoidFeatureExtractorV2(state, action):
@@ -95,6 +202,7 @@ def followLeaderBoidFeatureExtractorV2(state, action):
     old_distance = distance((boid_x, boid_y), leader)
     old_angle = boid_angle
     # Try not moving
+    # The velocity thing does not work I don't think lol
     if action[0] != None:
         boid_angle += action[0]
         velocity += action[1]
@@ -121,7 +229,7 @@ def followLeaderBoidFeatureExtractorV2(state, action):
 
     distance_delta = updated_distance - old_distance
     # Saying if we are going to crash into the other bird (the number 20 can be changed)
-    if updated_distance < 20:
+    if updated_distance < 30:
         features.append(('too-close', 1 / updated_distance))
         features.append(('distance-delta', 0))
         features.append(('distance', 0))
@@ -135,18 +243,6 @@ def followLeaderBoidFeatureExtractorV2(state, action):
     angle_delta = math.fabs(boid_angle - leader_angle)
     angle_delta_val = 1.0 / angle_delta if angle_delta != 0 else 1
     #features.append(('angle-direction', angle_delta_val))
-
-
-    min_side_dist = float('inf')
-    for i in range(2):
-        dist = distance((boid_x, boid_y), (boid_x, i * size[1]))
-        if dist < min_side_dist:
-            min_side_dist = dist
-
-    for i in range(2):
-        dist = distance((boid_x, boid_y), (i * size[0], boid_y))
-        if dist < min_side_dist:
-            min_side_dist = dist
 
     return features
 

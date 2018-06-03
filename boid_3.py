@@ -7,7 +7,7 @@ import QLearnBoid
 import search_util
 from collections import defaultdict
 from QLearnBoid import QLearnBoid
-from QLearnBoid import followLeaderBoidFeatureExtractorV2, distance
+from QLearnBoid import followLeaderBoidFeatureExtractorV2, distance, threeBirdFlock
 
 pygame.init()
 
@@ -96,7 +96,7 @@ maxVelocity = 4
 numBoids = 0
 boids = []
 
-crashdistance = 20
+crashdistance = 30
 
 
 leader_exists = True
@@ -116,6 +116,12 @@ class Boid:
         distX = self.x - boid.x
         distY = self.y - boid.y        
         return math.sqrt(distX * distX + distY * distY)
+
+    def getXVelocity(self):
+        return self.velocityX
+
+    def getYVelocity(self):
+        return self.velocityY
 
     "Move closer to a set of boids"
     def moveCloser(self, boids):
@@ -148,8 +154,10 @@ class Boid:
         avgY = 0
                 
         for boid in boids:
-            avgX += boid.velocityX
-            avgY += boid.velocityY
+            #avgX += boid.velocityX
+            #avgY += boid.velocityY
+            avgX += boid.getXVelocity()
+            avgY += boid.getYVelocity()
 
         avgX /= len(boids)
         avgY /= len(boids)
@@ -157,6 +165,7 @@ class Boid:
         # set our velocity towards the others
         self.velocityX += (avgX / 8)
         self.velocityY += (avgY / 8)
+
     
     "Move away from a set of boids. This avoids crowding"
     def moveAway(self, boids, minDistance):
@@ -228,6 +237,12 @@ class LeadBoid(Boid):
     "Move away from a set of boids. This avoids crowding"
     def moveAway(self, boids, minDistance):
         return
+
+    def getXVelocity(self):
+        return math.sin(-math.radians(self.angle)) * self.speed
+
+    def getYVelocity(self):
+        return -math.cos(math.radians(self.angle)) * self.speed
         
     "Perform actual movement based on our velocity"
     def move(self):
@@ -314,7 +329,7 @@ class StraightLineBoid(Boid):
         #self.x = (self.x + width) % width
         #self.y = (self.y + height) % height
 
-class LearningBoid():
+class LearningBoid(Boid):
     def __init__(self, x, y, angle = 0.0, speed = 2): 
         self.x = x
         self.y = y
@@ -323,6 +338,12 @@ class LearningBoid():
         self.speed = speed
         self.angle = angle
         self.direction = [0, 0]
+
+    def getXVelocity(self):
+        return math.sin(-math.radians(self.angle)) * self.speed
+
+    def getYVelocity(self):
+        return -math.cos(math.radians(self.angle)) * self.speed
 
     def move(self, action):
         # Assume for now that an action is just an angle movement
@@ -564,6 +585,119 @@ def test_rl(rl):
         pygame.display.flip()
         pygame.time.delay(1)
 
+def test_flock(flock, follow, flock_size):
+    # Super simple test right now with one leader and one 
+    # follower controlled by the rl algorithm
+    screen = pygame.display.set_mode(size)
+
+    bird = pygame.image.load("bird.png")
+    birdrect = bird.get_rect()
+    lead = pygame.image.load("bird1.png")
+    leadrect = lead.get_rect()
+    flock_pic = pygame.image.load("flock-bird.png")
+    flockrect = flock_pic.get_rect()
+
+    #leaderBoid = StraightLineBoid(55, height / 2.0)
+    leaderBoid = LeadBoid(500, 300, False)
+
+    rule_based = Boid(450, 300)
+    # Define the start state for our rl algorithm
+    follow_leader = LearningBoid(450, 300, 90)
+
+    follow_state = ((follow_leader.x, follow_leader.y, follow_leader.angle), (leaderBoid.x, leaderBoid.y, leaderBoid.angle), leaderBoid.speed, (width, height))
+
+    flock_birds = []
+    for i in range(flock_size):
+        flock_birds.append(LearningBoid(random.randint(0, width), random.randint(0, height)))
+
+    flock_states = []
+    for i in range(flock_size):
+        neighbors = [follow_leader]
+        for j in range(flock_size):
+            if j != i:
+                neighbors.append(flock_birds[j])
+        flock_states.append((flock_birds[i], leaderBoid, neighbors, 3))
+    
+    while 1:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT: sys.exit()
+
+        # Draw initial circles 
+        screen.fill(white)
+        pygame.draw.circle(screen, RED, [int(leaderBoid.x), int(leaderBoid.y)], 30, 1)
+
+        # Move both boids
+        leaderBoid.move()
+        
+        action_follow = follow.getAction(follow_state)
+        follow_leader.move(action_follow)
+
+        for i in range(flock_size):
+            action = flock.getAction(flock_states[i])
+            flock_birds[i].move(action)
+
+
+        follow_state = ((follow_leader.x, follow_leader.y, follow_leader.angle), (leaderBoid.x, leaderBoid.y, leaderBoid.angle), leaderBoid.speed, (width, height))
+        for i in range(flock_size):
+            neighbors = [follow_leader]
+            for j in range(flock_size):
+                if j != i:
+                    neighbors.append(flock_birds[j])
+            flock_states[i] = (flock_birds[i], leaderBoid, neighbors, 3)
+        '''
+        # Move the followers
+        closeBoids = [leaderBoid, follow_leader]
+        
+        # Move rule based boids
+        rule_based.moveCloser(closeBoids)
+        rule_based.moveWith(closeBoids)  
+        rule_based.moveAway(closeBoids, 60)
+        rule_based.move()
+        '''
+        
+        #screen.fill(white)
+
+        # Draw the boids
+        # Draw the leader
+        lead_rotated = pygame.transform.rotate(lead, leaderBoid.angle)
+        boidRect = lead_rotated.get_rect()
+        #boidRect = pygame.Rect(lead_rotated)
+        boidRect.x = leaderBoid.x
+        boidRect.y = leaderBoid.y
+        #boidRect = pygame.transform.rotate(boidRect, leaderBoid.angle)
+        #screen.blit(lead, boidRect)
+        screen.blit(lead_rotated, boidRect)
+        #pygame.draw.circle(screen, RED, [int(leaderBoid.x), int(leaderBoid.y)], 60, 1)
+
+        # Draw the follower
+        boidRect = pygame.Rect(birdrect)
+        boidRect.x = follow_leader.x
+        boidRect.y = follow_leader.y
+        screen.blit(bird, boidRect)
+        pygame.draw.circle(screen, RED, [int(follow_leader.x), int(follow_leader.y)], 30, 1)
+
+        # Draw flockers
+        for i in range(flock_size):
+            boidRect = pygame.Rect(flockrect)
+            boidRect.x = flock_birds[i].x
+            boidRect.y = flock_birds[i].y
+            screen.blit(flock_pic, boidRect)
+        '''
+        boidRect = pygame.Rect(flockrect)
+        boidRect.x = rule_based.x
+        boidRect.y = rule_based.y
+        screen.blit(flock_pic, boidRect)
+        '''
+
+        # Draw a circle in the avg location
+        avg_x = (leaderBoid.x + follow_leader.x) / 2.0
+        avg_y = (leaderBoid.y + follow_leader.y) / 2.0
+        pygame.draw.circle(screen, RED, [int(avg_x), int(avg_y)], 5)
+
+        
+        pygame.display.flip()
+        #pygame.time.delay(1)
+
 def test_maze(rl):
 
     # Super simple test right now with one leader and one 
@@ -642,7 +776,7 @@ def test_maze(rl):
 # RL algorithm according to the dynamics of the MDP.
 # Each trial will run for at most |maxIterations|.
 # Return the list of rewards that we get for each trial.
-def simulate(rl, numTrials=20, maxIterations=1000, verbose=False,
+def simulate(rl, numTrials=10, maxIterations=1000, verbose=False,
              sort=False):
     # Return i in [0, ..., len(probs)-1] with probability probs[i].
     def sample(probs):
@@ -893,12 +1027,20 @@ def actions(state):
     #return [None, -45, 0, 45, 90, -90, 135, -135, 180]
 
 rl = QLearnBoid(actions, 0.05, followLeaderBoidFeatureExtractorV2)
-results, following = simulate(rl)
-print following
-rl.printWeights()
+#results, following = simulate(rl)
+#rl.weights = {'too-close': -277.2738533630285, 'distance': -61.99941592542029, 'distance-delta': -2.703749051497212}
+# Weights for follow with d = 30
+rl.weights = {'too-close': -309.3907888756954, 'distance': -93.85128986645125, 'distance-delta': -4.498854417797437}
+#print following
+#rl.printWeights()
 #total_rewards = simulate_fixed(rl)
-print "***total rewards for this different simulations***"
+#print "***total rewards for this different simulations***"
 #print total_rewards
-rl.explorationProb = 0
-test_maze(rl)
-test_rl(rl)
+#rl.explorationProb = 0
+#test_maze(rl)
+#test_rl(rl)
+
+flock = QLearnBoid(actions, 0.05, threeBirdFlock)
+flock.weights = {"num-close": -5, "leader-dela": -9, "avg-dist": 0, "closest": -600, "second": -600, "centroid": -3}
+
+test_flock(flock, rl, 10)
