@@ -49,7 +49,8 @@ class QLearnBoid():
 
     # Call this function to get the step size to update the weights.
     def getStepSize(self):
-        return 1.0 / math.sqrt(self.numIters)
+        #return 1.0 / math.sqrt(self.numIters)
+        return 0.1 * 1.0 / math.sqrt(self.numIters)
 
     #helper function
     def printWeights(self):
@@ -67,11 +68,11 @@ class QLearnBoid():
         
         coefficient = self.getStepSize() * (self.getQ(state, action) - reward - self.discount*v_opt)
         
+        #print self.featureExtractor(state, action)
+        #print reward
         for f, v in self.featureExtractor(state, action):
-            #if f == 'too-close':
-                #if v != 0:
-                    #print "value: %f, reward: %f" % (v, reward)
-                    
+            #if f == 'leader-delta':
+                #print 'Weight: %f, update: %f, reward: %f' %(v, v * coefficient, reward)
             self.weights[f] -= (v * coefficient)
 
 #caculates euclidean distance
@@ -165,21 +166,24 @@ def threeBirdFlock(state, action):
         features.append(('second', 0))
 
     if len(close_birds) > 0:
+        features.append(('num-close', number_too_close))
         return features
 
 
     updated_dist_center = distance((boid_x, boid_y), centroid)
     features.append(('centroid', updated_dist_center - dist_center))
     # Lets make a feature that says how many are too close
-    features.append(('num-close', number_too_close))
 
     # Let's make a feature to see if we got closer to the leader
     distance_delta = updated_distance - dist_leader
-    features.append(('leader-dela', distance_delta))
-
+    #print 'dist %f' % (distance_delta)
+    # We want to seek out leader if we are far
+    #features.append(('leader-delta', distance_delta if dist_leader >= 50 else 0))
+    features.append(('leader-delta', distance_delta))
+    #features.append(('leader-delta', distance_delta))
     # Make a feature the distance to the "avg" flock
-    avg_delta = updated_avg_dist - avg_dist
-    features.append(('avg-dist', avg_delta))
+    #avg_delta = updated_avg_dist - avg_dist
+    #features.append(('avg-dist', avg_delta))
 
     return features
 
