@@ -586,6 +586,42 @@ def test_rl(rl):
         pygame.display.flip()
         pygame.time.delay(1)
 
+def calcCohesion(flock):
+    tallyX = 0
+    tallyY = 0
+    numBoids = 0
+
+    for boid in flock:
+        numBoids += 1
+        tallyX += boid.x
+        tallyY += boid.y
+
+    centerX = tallyX / float(numBoids)
+    centerY = tallyY / float(numBoids)
+
+    distanceTally = 0
+
+    for boid in flock:
+        distanceTally += math.sqrt((centerX - boid.x)**2 + (centerY - boid.y)**2)
+
+    return distanceTally/float(numBoids)
+
+def calcSeparation(flock):
+    numCollisions = 0
+
+    for boid1 in flock:
+        for boid2 in flock:
+            if boid1 != boid2: 
+                xdist = math.abs(boid1.x - boid2.x)
+                ydist = math.abs(boid1.y - boid2.y)
+                if (xdist < 15)  or (ydist < 15):
+                    numCollisions += 1
+
+    return numCollisions / float(2)
+
+def calcAllignment(float):
+    return 0
+
 
 
 def test_flock(flock, follow, flock_size):
