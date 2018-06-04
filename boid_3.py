@@ -7,7 +7,8 @@ import QLearnBoid
 import search_util
 from collections import defaultdict
 from QLearnBoid import QLearnBoid
-from QLearnBoid import followLeaderBoidFeatureExtractorV2, distance, threeBirdFlock
+from QLearnBoid import followLeaderBoidFeatureExtractorV2, distance, threeBirdFlock, distanceObj, distanceBirdCoord
+import copy
 
 pygame.init()
 
@@ -596,6 +597,8 @@ def test_flock(flock, follow, flock_size):
     leadrect = lead.get_rect()
     flock_pic = pygame.image.load("flock-bird.png")
     flockrect = flock_pic.get_rect()
+    rule_pic = pygame.image.load("rule-bird.png")
+    rule_rect = rule_pic.get_rect()
 
     #leaderBoid = StraightLineBoid(55, height / 2.0)
     leaderBoid = LeadBoid(500, 300, False)
@@ -644,16 +647,20 @@ def test_flock(flock, follow, flock_size):
                 if j != i:
                     neighbors.append(flock_birds[j])
             flock_states[i] = (flock_birds[i], leaderBoid, neighbors, 3)
-        '''
+        
         # Move the followers
         closeBoids = [leaderBoid, follow_leader]
+        for otherBoid in flock_birds:
+            distance = distanceObj(rule_based, otherBoid)
+            if distance < 100:
+                closeBoids.append(otherBoid)
         
         # Move rule based boids
         rule_based.moveCloser(closeBoids)
         rule_based.moveWith(closeBoids)  
-        rule_based.moveAway(closeBoids, 60)
+        rule_based.moveAway(closeBoids, 30)
         rule_based.move()
-        '''
+        
         
         #screen.fill(white)
 
@@ -664,7 +671,6 @@ def test_flock(flock, follow, flock_size):
         #boidRect = pygame.Rect(lead_rotated)
         boidRect.x = leaderBoid.x
         boidRect.y = leaderBoid.y
-        #boidRect = pygame.transform.rotate(boidRect, leaderBoid.angle)
         #screen.blit(lead, boidRect)
         screen.blit(lead_rotated, boidRect)
         #pygame.draw.circle(screen, RED, [int(leaderBoid.x), int(leaderBoid.y)], 60, 1)
@@ -682,12 +688,13 @@ def test_flock(flock, follow, flock_size):
             boidRect.x = flock_birds[i].x
             boidRect.y = flock_birds[i].y
             screen.blit(flock_pic, boidRect)
-        '''
-        boidRect = pygame.Rect(flockrect)
+        
+        # Rule based follower
+        boidRect = pygame.Rect(rule_rect)
         boidRect.x = rule_based.x
         boidRect.y = rule_based.y
-        screen.blit(flock_pic, boidRect)
-        '''
+        screen.blit(rule_pic, boidRect)
+        
 
         # Draw a circle in the avg location
         avg_x = (leaderBoid.x + follow_leader.x) / 2.0
@@ -697,6 +704,159 @@ def test_flock(flock, follow, flock_size):
         
         pygame.display.flip()
         #pygame.time.delay(1)
+
+# Perform |numTrials| of the following:
+# On each trial, take the MDP |mdp| and an RLAlgorithm |rl| and simulates the
+# RL algorithm according to the dynamics of the MDP.
+# Each trial will run for at most |maxIterations|.
+# Return the list of rewards that we get for each trial.
+def simulate_flock(flock_rl, follow_leader, numTrials=15, maxIterations=1000, verbose=False):
+
+    # Have to redefine this for flocking
+    def isfollowing(state):
+        # Define following as being within 20-30 units
+        #if not(distance(state[0], state[1]) > 20 and distance(state[0], state[1]) <= 35):
+            #print distance(state[0], state[1])
+        return distance(state[0], state[1]) > crashdistance and distance(state[0], state[1]) <= crashdistance + 15
+
+    def reward(prev_state, new_state):
+        # Unpac the states
+        boid, leader, birds, velocity = prev_state
+        update_boid, update_leader, update_birds, velocity = new_state
+
+        # Calculate the distance to the leader before step
+        dist_leader = distanceObj(boid, leader)
+
+        # Get distance to the centroid of flock
+        dist = dist_leader
+        avg_x = leader.x
+        avg_y = leader.y
+        for bird in birds:
+            avg_x += bird.x
+            avg_y += bird.y
+        centroid = (avg_x / float(len(birds) + 1), avg_y / float(len(birds) + 1))
+        # Distance to centroid before action
+        dist_center = distance((boid.x, boid.y), centroid)
+
+        # Updated distance to leader
+        updated_distance = distanceObj(update_boid, update_leader)
+
+        # Calculate birds that are too close
+        # And re-calc centroid
+        number_too_close = 0
+        close_birds =  []
+        avg_x = update_leader.x
+        avg_y = update_leader.y
+        if updated_distance < 30:
+            close_birds.append(updated_distance)
+        bird_distances = []
+        for bird in update_birds:
+            new_dist = distanceObj(update_boid, bird)
+            # See if we are too close
+            if new_dist < 30:
+                number_too_close += 1
+                close_birds.append(new_dist)
+
+            avg_x += bird.x
+            avg_y += bird.y
+
+        updated_centroid = (avg_x / float(len(birds) + 1), avg_y / float(len(birds) + 1))
+
+        #Start calculating reward
+        # Give bad negative reward if we are too close!
+        reward = 0
+        if len(close_birds) > 0:
+            reward = -5
+            #reward = -20
+            # Two CLOSE birds!!!
+            #if len(close_birds) > 1:
+                #reward *= 2
+            #return reward
+
+        
+        # Move toward the centroid
+        updated_dist_center = distance((update_boid.x, update_boid.y), updated_centroid)
+        #if dist_leader < 50:
+        if updated_dist_center <= dist_center:
+            reward += 2
+        else:
+            reward -= 1
+
+        # Move toward the leader with more importance than the center
+        updated_distance = distanceObj(update_boid, update_leader)
+        #if dist_leader >= 50:
+        if dist_leader >= updated_distance:
+            reward += 10
+            #reward += 100
+        else:
+            reward -= 2 
+            #reward -= 7
+
+
+        return reward
+
+
+    totalRewards = []  # The rewards we get on each trial
+    following = []
+    for trial in range(numTrials):
+        # We want to start doing the simulation
+        # Let us start by placing down a the leader and
+        # the learning follower
+        leaderBoid = LeadBoid(500, 300)
+        # Define the start state for our fixed follow leader algorithm
+        follow_boid = LearningBoid(450, 300, 90)
+
+        # Define the start state for our flock algorithm
+        flock_boid = LearningBoid(550, 300, 90)
+
+        # Define the start state that will be passed to our learning algorithm
+        follow_state = ((follow_boid.x, follow_boid.y, follow_boid.angle), (leaderBoid.x, leaderBoid.y, leaderBoid.angle), leaderBoid.speed, (width, height))
+        flock_state = (flock_boid, leaderBoid, [follow_boid], 3)
+
+        #sequence = [state]
+        totalDiscount = 1
+        totalReward = 0
+        time_steps_following = 0
+        for _ in range(maxIterations):
+            # Save the old state
+            # Super ugly???
+            save_state = (copy.deepcopy(flock_boid), copy.deepcopy(leaderBoid), [copy.deepcopy(follow_boid)], 3)
+            # Get the action predicted by the bird learning algorithm
+            follow_leader_a = follow_leader.getAction(follow_state)
+            # Move the learning bird
+            follow_boid.move(follow_leader_a)
+            # Move the leading bird
+            leaderBoid.move()
+
+            # Get an action for the flock
+            flock_a = flock_rl.getAction(flock_state)
+            flock_boid.move(flock_a)
+
+            # Update follow state
+            follow_state = ((follow_boid.x, follow_boid.y, follow_boid.angle), (leaderBoid.x, leaderBoid.y, leaderBoid.angle), leaderBoid.speed, (width, height))
+            
+            # Get the new flock state and reward
+            new_flock_state = (flock_boid, leaderBoid, [follow_boid], 3)
+            reward1 = reward(save_state, new_flock_state)
+
+            #sequence.append(action)
+            #sequence.append(reward)
+            #sequence.append(newState)
+
+            flock_rl.incorporateFeedback(flock_state, flock_a, reward1, new_flock_state)
+
+            flock_state = new_flock_state
+
+            totalReward += totalDiscount * reward1
+            #if trial % 3 == 0:
+                #time_steps_following += 1 if isfollowing(newState) else 0
+        if verbose:
+            print "Trial %d (totalReward = %s): %s" % (trial, totalReward, sequence)
+        if trial % 3 == 0:
+            following.append(time_steps_following)
+            flock_rl.printWeights()
+        totalRewards.append(totalReward)
+    return totalRewards, following
 
 def test_maze(rl):
 
@@ -776,16 +936,8 @@ def test_maze(rl):
 # RL algorithm according to the dynamics of the MDP.
 # Each trial will run for at most |maxIterations|.
 # Return the list of rewards that we get for each trial.
-def simulate(rl, numTrials=10, maxIterations=1000, verbose=False,
+def simulate(rl, numTrials=20, maxIterations=5000, verbose=False,
              sort=False):
-    # Return i in [0, ..., len(probs)-1] with probability probs[i].
-    def sample(probs):
-        target = random.random()
-        accum = 0
-        for i, prob in enumerate(probs):
-            accum += prob
-            if accum >= target: return i
-        raise Exception("Invalid probs: %s" % probs)
 
     def isfollowing(state):
         # Define following as being within 20-30 units
@@ -809,48 +961,7 @@ def simulate(rl, numTrials=10, maxIterations=1000, verbose=False,
         #distance_new = distance(new_learner_loc, old_leader_loc)
 
         reward = 0
-        # Base reward on how the distance changes
-        '''
-        if distance_new == 0:
-            reward = -1000
-
-        elif distance_new < crashdistance:
-            # OLD!!
-            
-            #if distance_old <= distance_new:
-                #reward = 45
-            #else:
-                #reward = -45
-            
-            reward = -45
-            # else:
-
-            reward = (-500) * (1/distance_new)
-        '''
-        '''
-        if distance_new < crashdistance:
-            reward = - 2*(1/distance_new)
-        elif distance_old > distance_new:
-            
-                        # OLD!!
-            
-            # reward = 5
-            reward = 10
-            reward += 500 * (1/distance_new)
-        elif distance_old < distance_new:
-            # OLD!!!
-            # reward = -5
-
-
-            reward = -10
-            reward += 500 * (1/distance_new)
-            
-            reward = distance_new / float(8)
-            # reward += (1/distance_new)
-        elif distance_old < distance_new:
-            reward = - distance_new / float(2)
-            # reward -= (1/distance_new)
-        '''
+        
         if distance_new < crashdistance:
             #reward = - 600*(1/distance_new)
             reward = -600
@@ -871,11 +982,8 @@ def simulate(rl, numTrials=10, maxIterations=1000, verbose=False,
         # We want to start doing the simulation
         # Let us start by placing down a the leader and
         # the learning follower
-        #leaderBoid = StraightLineBoid(55, height / 2.0)
-        #leaderBoid = LeadBoid(55, height / 2.0)
         leaderBoid = LeadBoid(500, 300)
         # Define the start state for our rl algorithm
-        #learnerBoid = LearningBoid(25, height / 2.0, 90)
         learnerBoid = LearningBoid(450, 300, 90)
 
         # Define the start state that will be passed to our learning algorithm
@@ -923,15 +1031,6 @@ def simulate(rl, numTrials=10, maxIterations=1000, verbose=False,
 
 # def simulate_fixed(rl, numTrials=10, maxIterations=1000, verbose=False,
 #              sort=False):
-#     # Return i in [0, ..., len(probs)-1] with probability probs[i].
-#     def sample(probs):
-#         target = random.random()
-#         accum = 0
-#         for i, prob in enumerate(probs):
-#             accum += prob
-#             if accum >= target: return i
-#         raise Exception("Invalid probs: %s" % probs)
-
 #     def reward(prev_state, new_state):
 #         # We will primarily calculate initial reward 
 #         # based on distance between leader and the flying bird
@@ -1041,6 +1140,63 @@ rl.weights = {'too-close': -309.3907888756954, 'distance': -93.85128986645125, '
 #test_rl(rl)
 
 flock = QLearnBoid(actions, 0.05, threeBirdFlock)
-flock.weights = {"num-close": -5, "leader-dela": -9, "avg-dist": 0, "closest": -600, "second": -600, "centroid": -3}
+results, following = simulate_flock(flock, rl)
+flock.printWeights()
+flock.weights = {"num-close": -5, "leader-delta": -9, "closest": -600, "second": -600, "centroid": -3}
+#flock.weights = {'num-close': -194.56696867753752, 'second': -46.0414842003419, 'centroid': -85.70090960847638, 'leader-delta': 47.346239400205164, 'closest': -150.9097418891571}
+#flock.weights = {'num-close': 5.091556643054558, 'second': -0.023930798504836134, 'centroid': -0.6919207067486197, 'leader-delta': -2.5160067808901267, 'closest': -0.011987485524575334}
+#flock.explorationProb = 0
 
-test_flock(flock, rl, 10)
+test_flock(flock, rl, 15)
+
+
+
+
+"""
+Dead Code repository
+
+# Old reward stuff
+# Base reward on how the distance changes
+'''
+if distance_new == 0:
+    reward = -1000
+
+elif distance_new < crashdistance:
+    # OLD!!
+    
+    #if distance_old <= distance_new:
+        #reward = 45
+    #else:
+        #reward = -45
+    
+    reward = -45
+    # else:
+
+    reward = (-500) * (1/distance_new)
+'''
+'''
+if distance_new < crashdistance:
+    reward = - 2*(1/distance_new)
+elif distance_old > distance_new:
+    
+                # OLD!!
+    
+    # reward = 5
+    reward = 10
+    reward += 500 * (1/distance_new)
+elif distance_old < distance_new:
+    # OLD!!!
+    # reward = -5
+
+
+    reward = -10
+    reward += 500 * (1/distance_new)
+    
+    reward = distance_new / float(8)
+    # reward += (1/distance_new)
+elif distance_old < distance_new:
+    reward = - distance_new / float(2)
+    # reward -= (1/distance_new)
+'''
+
+"""

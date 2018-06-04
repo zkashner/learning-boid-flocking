@@ -56,3 +56,10 @@ else:
     features.append(('too-close', 0))
     features.append(('distance-delta', distance_delta))
     features.append(('distance', 1/updated_distance))
+
+
+Flocking weights!
+flock.weights = {"num-close": -5, "leader-dela": -9, "avg-dist": 0, "closest": -600, "second": -600, "centroid": -3}
+
+# Follow leader weights
+{'too-close': -309.3907888756954, 'distance': -93.85128986645125, 'distance-delta': -4.498854417797437}
