@@ -77,3 +77,30 @@ Test to see how many good steps our bird takes where
 a good step is defined as following the leader within a good boundary
 i.e. within 35 units but not closer than 30 units
 [3689, 4226, 4465, 4321, 4492, 4458, 4439]
+
+
+following
+crash is 28
+Learned
+Steps: 5000.000000, good_follows: 2539.000000, crashes: 134.000000, close_follows: 4773.000000
+Rule Based
+Steps: 5000.000000, good_follows: 2695.000000, crashes: 68.000000, close_follows: 3956.000000
+
+
+crash 25
+Rule
+Steps: 5000.000000, good_follows: 2686.000000, crashes: 29.000000, close_follows: 4040.000000
+
+crash 20
+rule
+Steps: 5000.000000, good_follows: 2705.000000, crashes: 59.000000, close_follows: 4085.000000
+Learned
+2590.000000, crashes: 109.000000, close_follows: 4873.000000
+
+
+5000 time steps - every ten steps take measurement
+learned 
+Avg separation: 0.066000, Avg cohestion: 55.304601
+
+Rule based
+Avg separation: 0.136000, Avg cohestion: 51.252566
