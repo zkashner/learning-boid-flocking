@@ -500,6 +500,26 @@ while 1:
 '''
 
 def test_rl(rl):
+    # Have to redefine this for flocking
+    def isfollowing(state, newState):
+        # Define following as being within 20-30 units
+        # See if it took a step toward the leader correctly
+        oldDist = distance(state[0], state[1])
+        newDist = distance(newState[0], newState[1])
+        follow = 0
+        if oldDist >= newDist:
+            follow = 1
+
+        # Check we hit the leader
+        crash = 0
+        if distance(newState[0], newState[1]) < crashdistance - 2:
+            crash = 1
+
+        # Check if maintained a good follow distance (i.e. stayed within 7 units of leader)
+        stay_follow = 0
+        if distance(newState[0], newState[1]) > crashdistance - 2 and distance(newState[0], newState[1]) <= crashdistance + 10:
+            stay_follow = 1
+
     # Super simple test right now with one leader and one 
     # follower controlled by the rl algorithm
     screen = pygame.display.set_mode(size)
@@ -510,15 +530,16 @@ def test_rl(rl):
     leadrect = lead.get_rect()
 
     #leaderBoid = StraightLineBoid(55, height / 2.0)
-    leaderBoid = LeadBoid(500, 300, False)
+    #leaderBoid = LeadBoid(500, 300, False)
     #leaderBoid = LeadBoid(55, height / 2.0)
     # Define the start state for our rl algorithm
     #learnerBoid = LearningBoid(25, height / 2.0, 90)
+    leaderBoid = CircleBoid(500, 400)
     learnedBoids = []
-    learnedBoids.append(LearningBoid(450, 300, 90))
-    learnedBoids.append(LearningBoid(350, 310, 90))
-    learnedBoids.append(LearningBoid(575, 350, 90))
-    learnedBoids.append(LearningBoid(650, 400, 90))
+    #learnedBoids.append(LearningBoid(450, 300, 90))
+    #learnedBoids.append(LearningBoid(350, 310, 90))
+    #learnedBoids.append(LearningBoid(575, 350, 90))
+    learnedBoids.append(LearningBoid(550, 400, 90))
     # Set weights
     #rl.weights = {"distance-delta": -1, "too-close": -5}
     #learnerBoid = LearningBoid(450, 300, 90)
@@ -938,14 +959,14 @@ def test_maze(rl):
 # RL algorithm according to the dynamics of the MDP.
 # Each trial will run for at most |maxIterations|.
 # Return the list of rewards that we get for each trial.
-def simulate(rl, numTrials=20, maxIterations=5000, verbose=False,
+def simulate(rl, numTrials=22, maxIterations=1000, verbose=False,
              sort=False):
 
     def isfollowing(state):
         # Define following as being within 20-30 units
         #if not(distance(state[0], state[1]) > 20 and distance(state[0], state[1]) <= 35):
             #print distance(state[0], state[1])
-        return distance(state[0], state[1]) > crashdistance - 1 and distance(state[0], state[1]) <= crashdistance + 5
+        return distance(state[0], state[1]) > crashdistance - 1 and distance(state[0], state[1]) <= crashdistance + 15
 
     def reward(prev_state, new_state):
         # We will primarily calculate initial reward 
@@ -984,7 +1005,8 @@ def simulate(rl, numTrials=20, maxIterations=5000, verbose=False,
         # We want to start doing the simulation
         # Let us start by placing down a the leader and
         # the learning follower
-        leaderBoid = LeadBoid(500, 300)
+        #leaderBoid = LeadBoid(500, 300)
+        leaderBoid = CircleBoid(500, 300)
         # Define the start state for our rl algorithm
         learnerBoid = LearningBoid(460, 300, 90)
 
