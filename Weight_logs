@@ -63,3 +63,17 @@ flock.weights = {"num-close": -5, "leader-dela": -9, "avg-dist": 0, "closest": -
 
 # Follow leader weights
 {'too-close': -309.3907888756954, 'distance': -93.85128986645125, 'distance-delta': -4.498854417797437}
+
+
+Trails = 20
+Training steps = 5000
+Do every mod three
+[3728, 3951, 3843, 3827, 3966, 4362, 4123]
+
+Trails = 20
+Training Steps = 5000
+Every third simulation
+Test to see how many good steps our bird takes where 
+a good step is defined as following the leader within a good boundary
+i.e. within 35 units but not closer than 30 units
+[3689, 4226, 4465, 4321, 4492, 4458, 4439]
