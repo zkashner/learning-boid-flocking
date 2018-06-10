@@ -125,6 +125,16 @@ class Boid:
     def getYVelocity(self):
         return self.velocityY
 
+    def calcAngle(self):
+        if self.velocityX < 0:
+            return math.degrees(math.atan(self.velocityY/float(self.velocityX))) + 180
+        elif self.velocityY <= 0:
+            return math.degrees(math.atan(self.velocityY/float(self.velocityX))) + 360
+        else:
+            return  math.degrees(math.atan(self.velocityY/float(self.velocityX)))
+
+        #return math.degrees(math.atan(self.velocityY/float(self.velocityX)))
+
     "Move closer to a set of boids"
     def moveCloser(self, boids):
         if len(boids) < 1: return
@@ -670,13 +680,47 @@ def calcSeparation(flock):
                 dist = math.sqrt((boid1.x - boid2.x)**2 + (boid1.y - boid2.y)**2)
                 #if (xdist < 15)  or (ydist < 15):
                 if dist < 20:
-                    print 'here'
+                    #print 'here'
                     numCollisions += 1
 
     return numCollisions / float(2)
 
-def calcAllignment(float):
-    return 0
+def calcAllignment(flock, rule=False):
+    tallyAngle = 0
+    numBoids = 0
+
+    for boid in flock:
+        numBoids += 1
+        if rule:
+            angle = boid.calcAngle() % 360
+            #if angle > 180:
+                #angle = 180 - (angle % 180)
+            tallyAngle += angle
+        else:
+            angle = boid.angle % 360
+            #if angle > 180:
+                #angle = 180 - (angle % 180)
+            tallyAngle += angle
+
+    centerAngle = tallyAngle / float(numBoids)
+    if centerAngle > 180:
+        centerAngle = 180 - (centerAngle % 180)
+
+    distanceTally = 0
+
+    for boid in flock:
+        if rule:
+            angle = boid.calcAngle() % 360
+            if angle > 180:
+                angle = 180 - (angle % 180)
+            distanceTally += (math.fabs(angle - centerAngle))
+        else:
+            angle = boid.angle % 360
+            if angle > 180:
+                angle = 180 - (angle % 180)
+            distanceTally += (math.fabs(angle - centerAngle))
+
+    return distanceTally/float(numBoids)
 
 
 
@@ -705,16 +749,17 @@ def test_flock(flock, follow, flock_size):
 
     flock_birds = []
     for i in range(flock_size):
-        #flock_birds.append(LearningBoid(random.randint(0, width), random.randint(0, height)))
+        flock_birds.append(LearningBoid(random.randint(0, width), random.randint(0, height)))
 
         # Use rules
-        flock_birds.append(Boid(random.randint(0, width), random.randint(0, height)))
+        #flock_birds.append(Boid(random.randint(0, width), random.randint(0, height)))
 
     rule_neighbors = []
     flock_states = []
     for i in range(flock_size):
         # For learned
         #neighbors = [follow_leader]
+        # Rule
         neighbors = [follow_leader, leaderBoid]
         for j in range(flock_size):
             if j != i:
@@ -726,14 +771,17 @@ def test_flock(flock, follow, flock_size):
     trail = 0
     cohesion = 0
     separation = 0
+    alignment = 0
     while 1:
-        print trail
+        #print trail
         if trail == 4999:
             print cohesion
             print separation
+            print alignment
             cohesion_avg = cohesion / (float(trail + 1) / 10)
             separation_avg = separation / (float(trail + 1) / 10)
-            print 'Avg separation: %f, Avg cohestion: %f' % (separation_avg, cohesion_avg)
+            alignment_avg = alignment / (float(trail + 1) / 10)
+            print 'Avg separation: %f, Avg cohestion: %f, Avg alignment: %f' % (separation_avg, cohesion_avg, alignment_avg)
             sys.exit()
         for event in pygame.event.get():
             if event.type == pygame.QUIT: sys.exit()
@@ -749,15 +797,17 @@ def test_flock(flock, follow, flock_size):
         follow_leader.move(action_follow)
 
         for i in range(flock_size):
-            #action = flock.getAction(flock_states[i])
-            #flock_birds[i].move(action)
+            action = flock.getAction(flock_states[i])
+            flock_birds[i].move(action)
 
             # Rule based
+            '''
             closeBoids = rule_neighbors[i]
             flock_birds[i].moveCloser(closeBoids)
             flock_birds[i].moveWith(closeBoids)  
             flock_birds[i].moveAway(closeBoids, 30)
             flock_birds[i].move()
+            '''
 
 
         follow_state = ((follow_leader.x, follow_leader.y, follow_leader.angle), (leaderBoid.x, leaderBoid.y, leaderBoid.angle), leaderBoid.speed, (width, height))
@@ -782,14 +832,19 @@ def test_flock(flock, follow, flock_size):
         if trail % 10 == 0:
             cohesion += calcCohesion(flock_birds)
             separation += calcSeparation(flock_birds)
+            # rule
+            #alignment += calcAllignment(flock_birds, True)
+            #print calcAllignment(flock_birds, True)
+            # leanred
+            alignment += calcAllignment(flock_birds)
 
 
-        '''
+        
         # Move rule based boids
-        rule_based.moveCloser(closeBoids)
-        rule_based.moveWith(closeBoids)  
-        rule_based.moveAway(closeBoids, 30)
-        rule_based.move()
+        #rule_based.moveCloser(closeBoids)
+        #rule_based.moveWith(closeBoids)  
+        #rule_based.moveAway(closeBoids, 30)
+        #rule_based.move()
         '''
         
         
@@ -797,6 +852,7 @@ def test_flock(flock, follow, flock_size):
         
         # Draw the boids
         # Draw the leader
+        '''
         lead_rotated = pygame.transform.rotate(lead, leaderBoid.angle)
         boidRect = lead_rotated.get_rect()
         #boidRect = pygame.Rect(lead_rotated)
@@ -831,9 +887,10 @@ def test_flock(flock, follow, flock_size):
         avg_x = (leaderBoid.x + follow_leader.x) / 2.0
         avg_y = (leaderBoid.y + follow_leader.y) / 2.0
         #pygame.draw.circle(screen, RED, [int(avg_x), int(avg_y)], 5)
-
+        
         
         pygame.display.flip()
+        
         #pygame.time.delay(1)
         
         trail += 1
@@ -899,36 +956,42 @@ def simulate_flock(flock_rl, follow_leader, numTrials=20, maxIterations=1000, ve
         # Give bad negative reward if we are too close!
         reward = 0
         if len(close_birds) > 0:
-            reward = -5
-            #reward = -20
+            #reward = -200 / float(close_birds[0])
+            reward = -20
             # Two CLOSE birds!!!
             #if len(close_birds) > 1:
+                #reward -= 200 / float(close_birds[1])
                 #reward *= 2
-            #return reward
+            return reward
 
         
         # Move toward the centroid
         updated_dist_center = distance((update_boid.x, update_boid.y), updated_centroid)
+        #updated_dist_center = distance((update_boid.x, update_boid.y), centroid)
         #if dist_leader < 50:
         if updated_dist_center <= dist_center:
-            reward += 2
+            reward += 1 + math.fabs(updated_dist_center - dist_center)
         else:
             reward += 0
 
         # Move toward the leader with more importance than the center
         updated_distance = distanceObj(update_boid, update_leader)
+        #updated_distance = distanceObj(update_boid, leader)
         #if dist_leader >= 50:
         if dist_leader >= updated_distance:
-            reward += 10
+            reward += 5 + 3 * math.fabs(updated_distance - dist_leader)
+            #reward += 10
             #reward += 100
         else:
-            reward -= 5 
+            reward -= 2 - 2 * math.fabs(updated_distance - dist_leader)
+            #reward -= 5 
             #reward -= 5
 
 
         return reward
 
 
+    # Instantiate a trained algorithm of flocking
     totalRewards = []  # The rewards we get on each trial
     following = []
     for trial in range(numTrials):
@@ -938,6 +1001,9 @@ def simulate_flock(flock_rl, follow_leader, numTrials=20, maxIterations=1000, ve
         leaderBoid = LeadBoid(500, 300)
         # Define the start state for our fixed follow leader algorithm
         follow_boid = LearningBoid(450, 300, 90)
+
+        # Trained flock bird
+        #trained_flock = LearningBoid(550, 300, 90)
 
         # Define the start state for our flock algorithm
         flock_boid = LearningBoid(100, 100, 90)
@@ -1249,6 +1315,7 @@ def actions(state):
     # return [None, -45, -35, -20, -10, -5, -2, 0, 2, 5, 10, 20, 35, 45, 180]
     angles = [-45, -35, -20, -10, -5, -2, 0, 2, 5, 10, 20, 35, 45]
     velocities = [-.3, -.2, -.1, 0, .1, .2, .3]
+    #velocities = [-1.5, 0, 1.5]
 
     toReturn = []
 
@@ -1259,11 +1326,14 @@ def actions(state):
     return toReturn
     #return [None, -45, 0, 45, 90, -90, 135, -135, 180]
 
+def actions2(state):
+    angles = [-45, -35, -20, -10, -5, -2, 0, 2, 5, 10, 20, 35, 45]
+
 rl = QLearnBoid(actions, 0.05, followLeaderBoidFeatureExtractorV2)
 #results, following = simulate(rl)
 #rl.weights = {'too-close': -277.2738533630285, 'distance': -61.99941592542029, 'distance-delta': -2.703749051497212}
 # Weights for follow with d = 30
-rl.weights = {'too-close': -309.3907888756954, 'distance': -93.85128986645125, 'distance-delta': -4.498854417797437}
+rl.weights = {'too-close': -309, 'distance': -94, 'distance-delta': -4.5}
 #print following
 #rl.printWeights()
 #total_rewards = simulate_fixed(rl)
@@ -1273,10 +1343,11 @@ rl.weights = {'too-close': -309.3907888756954, 'distance': -93.85128986645125, '
 #test_maze(rl)
 #test_rl(rl)
 
-flock = QLearnBoid(actions, 0.05, threeBirdFlock)
-flock.weights = {"num-close": -5, "leader-delta": -9, "closest": -600, "second": -600, "centroid": -3}
-#results, following = simulate_flock(flock, rl)
-#flock.printWeights()
+# Try different values of discount - .35 is good
+flock = QLearnBoid(actions, 0.5, threeBirdFlock)
+#flock.weights = {"num-close": -5, "leader-delta": -9, "closest": -600, "second": -600, "centroid": -3}
+results, following = simulate_flock(flock, rl)
+flock.printWeights()
 #flock.weights = {"num-close": -5, "leader-delta": -9, "closest": -600, "second": -600, "centroid": -3}
 #flock.weights = {'num-close': -194.56696867753752, 'second': -46.0414842003419, 'centroid': -85.70090960847638, 'leader-delta': 47.346239400205164, 'closest': -150.9097418891571}
 #flock.weights = {'num-close': 5.091556643054558, 'second': -0.023930798504836134, 'centroid': -0.6919207067486197, 'leader-delta': -2.5160067808901267, 'closest': -0.011987485524575334}

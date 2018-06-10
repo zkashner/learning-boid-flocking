@@ -114,15 +114,16 @@ def threeBirdFlock(state, action):
     centroid = (avg_x / float(len(birds) + 1), avg_y / float(len(birds) + 1))
     dist_center = distance((boid.x, boid.y), centroid)
 
-    boid_x, boid_y, boid_angle = boid.x, boid.y, boid.angle
+    boid_x, boid_y, boid_angle, speed = boid.x, boid.y, boid.angle, boid.speed
     # Make our move
     if action[0] != None:
+        #print speed
         boid_angle += action[0]
-        velocity += action[1]
-        if velocity > 3:
-            velocity = 3
-        if velocity < 0:
-            velocity = 0
+        speed += action[1]
+        if speed > 3:
+            speed = 3
+        if speed < 0:
+            speed = 0
         direction_x = math.sin(math.radians(boid_angle))
         direction_y = -math.cos(math.radians(boid_angle))
 
@@ -166,7 +167,7 @@ def threeBirdFlock(state, action):
         features.append(('second', 0))
 
     if len(close_birds) > 0:
-        features.append(('num-close', number_too_close))
+        #features.append(('num-close', number_too_close))
         return features
 
 
@@ -180,7 +181,6 @@ def threeBirdFlock(state, action):
     # We want to seek out leader if we are far
     #features.append(('leader-delta', distance_delta if dist_leader >= 50 else 0))
     features.append(('leader-delta', distance_delta))
-    #features.append(('leader-delta', distance_delta))
     # Make a feature the distance to the "avg" flock
     #avg_delta = updated_avg_dist - avg_dist
     #features.append(('avg-dist', avg_delta))

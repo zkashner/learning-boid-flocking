@@ -104,3 +104,9 @@ Avg separation: 0.066000, Avg cohestion: 55.304601
 
 Rule based
 Avg separation: 0.136000, Avg cohestion: 51.252566
+
+
+learned
+Avg separation: 0.070000, Avg cohestion: 55.505752, Avg alignment: 64.834560
+Rule based
+Avg separation: 0.538000, Avg cohestion: 50.838240, Avg alignment: 177.186870
