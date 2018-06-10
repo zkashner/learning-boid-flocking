@@ -75,6 +75,71 @@ def defineMaze(buffer):
             obstacles[(r,c)] = True
     return obstacles
 
+def defineMaze2(buffer):
+    obstacles = defaultdict(bool)
+    for r in range(1000):
+        for c in range(600):
+            obstacles[(r,c)] = False
+
+    for r in range(100 - buffer, 100 + buffer):
+        for c in range(0, 300 + buffer):
+            obstacles[(r,c)] = True
+        for c in range(400 - buffer, 500 + buffer):
+            obstacles[(r,c)] = True
+
+    for r in range(300 - buffer, 300 + buffer):
+        for c in range(100 - buffer, 300 + buffer):
+            obstacles[(r,c)] = True
+
+    for r in range(400 - buffer, 400 + buffer):
+        for c in range(100 - buffer, 300 + buffer):
+            obstacles[(r,c)] = True
+        for c in range(400 - buffer, 500 + buffer):
+            obstacles[(r,c)] = True
+
+    for r in range(500 - buffer, 500 + buffer):
+        for c in range(100 - buffer, 400 + buffer):
+            obstacles[(r,c)] = True
+
+    for r in range(600 - buffer, 600 + buffer):
+        for c in range(0, 300 + buffer):
+            obstacles[(r,c)] = True
+        for c in range(550 - buffer, 600):
+            obstacles[(r,c)] = True
+
+    for r in range(700 - buffer, 700 + buffer):
+        for c in range(300 - buffer, 450 + buffer):
+            obstacles[(r,c)] = True
+
+    for r in range(900 - buffer, 900 + buffer):
+        for c in range(150 - buffer, 1000):
+            obstacles[(r,c)] = True
+
+    for r in range(200 - buffer, 300 + buffer):
+        for c in range(100 - buffer, 100 + buffer):
+            obstacles[(r,c)] = True
+
+    for r in range(400 - buffer, 500 + buffer):
+        for c in range(100 - buffer, 100 + buffer):
+            obstacles[(r,c)] = True
+
+    for r in range(700 - buffer, 900 + buffer):
+        for c in range(150 - buffer, 150 + buffer):
+            obstacles[(r,c)] = True
+
+    for r in range(600 - buffer, 700 + buffer):
+        for c in range(300 - buffer, 300 + buffer):
+            obstacles[(r,c)] = True
+
+    for r in range(300 - buffer, 400 + buffer):
+        for c in range(300 - buffer, 300 + buffer):
+            obstacles[(r,c)] = True
+
+    for r in range(100 - buffer, 700 + buffer):
+        for c in range(400 - buffer, 400 + buffer):
+            obstacles[(r,c)] = True
+    return obstacles
+
 obstacles = defineMaze(12)
 
 class QLearnBoidObstacles():
@@ -208,7 +273,7 @@ def followLeaderBoidFeatureExtractorObstacles(state, action):
 
     distance_delta = updated_distance - old_distance
     # Saying if we are going to crash into the other bird (the number 20 can be changed)
-    if updated_distance < 60:
+    if updated_distance < 30:
         features.append(('too-close', distance_delta))
         features.append(('distance-delta', 0))
         features.append(('distance', 0))

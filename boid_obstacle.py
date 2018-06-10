@@ -18,8 +18,8 @@ size = width, height = 1000, 600
 
 def defineMaze(buffer):
     obstacles = defaultdict(bool)
-    for r in range(width):
-        for c in range(height):
+    for r in range(1000):
+        for c in range(600):
             obstacles[(r,c)] = False
 
     for r in range(100 - buffer, 100 + buffer):
@@ -89,6 +89,71 @@ def defineMaze(buffer):
             obstacles[(r,c)] = True
     return obstacles
 
+def defineMaze2(buffer):
+    obstacles = defaultdict(bool)
+    for r in range(width):
+        for c in range(height):
+            obstacles[(r,c)] = False
+
+    for r in range(100 - buffer, 100 + buffer):
+        for c in range(0, 300 + buffer):
+            obstacles[(r,c)] = True
+        for c in range(400 - buffer, 500 + buffer):
+            obstacles[(r,c)] = True
+
+    for r in range(300 - buffer, 300 + buffer):
+        for c in range(100 - buffer, 300 + buffer):
+            obstacles[(r,c)] = True
+
+    for r in range(400 - buffer, 400 + buffer):
+        for c in range(100 - buffer, 300 + buffer):
+            obstacles[(r,c)] = True
+        for c in range(400 - buffer, 500 + buffer):
+            obstacles[(r,c)] = True
+
+    for r in range(500 - buffer, 500 + buffer):
+        for c in range(100 - buffer, 400 + buffer):
+            obstacles[(r,c)] = True
+
+    for r in range(600 - buffer, 600 + buffer):
+        for c in range(0, 300 + buffer):
+            obstacles[(r,c)] = True
+        for c in range(550 - buffer, 600):
+            obstacles[(r,c)] = True
+
+    for r in range(700 - buffer, 700 + buffer):
+        for c in range(300 - buffer, 450 + buffer):
+            obstacles[(r,c)] = True
+
+    for r in range(900 - buffer, 900 + buffer):
+        for c in range(150 - buffer, 1000):
+            obstacles[(r,c)] = True
+
+    for r in range(200 - buffer, 300 + buffer):
+        for c in range(100 - buffer, 100 + buffer):
+            obstacles[(r,c)] = True
+
+    for r in range(400 - buffer, 500 + buffer):
+        for c in range(100 - buffer, 100 + buffer):
+            obstacles[(r,c)] = True
+
+    for r in range(700 - buffer, 900 + buffer):
+        for c in range(150 - buffer, 150 + buffer):
+            obstacles[(r,c)] = True
+
+    for r in range(600 - buffer, 700 + buffer):
+        for c in range(300 - buffer, 300 + buffer):
+            obstacles[(r,c)] = True
+
+    for r in range(300 - buffer, 400 + buffer):
+        for c in range(300 - buffer, 300 + buffer):
+            obstacles[(r,c)] = True
+
+    for r in range(100 - buffer, 700 + buffer):
+        for c in range(400 - buffer, 400 + buffer):
+            obstacles[(r,c)] = True
+    return obstacles
+
 obstacles = defineMaze(12)
 fat_obstacles = defineMaze(30)
 black = 0, 0, 0
@@ -99,7 +164,7 @@ maxVelocity = 4
 numBoids = 0
 boids = []
 
-crashdistance = 60
+crashdistance = 30
 
 
 leader_exists = True
@@ -113,6 +178,7 @@ class Boid:
         self.y = y
         self.velocityX = random.randint(1, 10) / 10.0
         self.velocityY = random.randint(1, 10) / 10.0
+        self.angle = 0
 
     "Return the distance from another boid"
     def distance(self, boid):
@@ -421,6 +487,7 @@ def test_maze(rl):
     learnerBoid = LearningBoid(50, 25, 90)
     learnerBoid2 = LearningBoid(25, 50, 90)
 
+
     # Define the start state that will be passed to our learning algorithm
     state = ((learnerBoid.x, learnerBoid.y, learnerBoid.angle), (leaderBoid.x, leaderBoid.y, leaderBoid.angle), leaderBoid.speed, (width, height))
     state2 = ((learnerBoid2.x, learnerBoid2.y, learnerBoid2.angle), (leaderBoid.x, leaderBoid.y, leaderBoid.angle), leaderBoid.speed, (width, height))
@@ -493,8 +560,8 @@ def allGood(x, y):
 # RL algorithm according to the dynamics of the MDP.
 # Each trial will run for at most |maxIterations|.
 # Return the list of rewards that we get for each trial.
-def simulate_maze(rl, numTrials=50, maxIterations=2000, verbose=False,
-             sort=False):
+def simulate_maze(rl, numTrials=100, maxIterations=1200, verbose=False,
+             sort=False, learning=True, qlearn=True):
     # Return i in [0, ..., len(probs)-1] with probability probs[i].
     def sample(probs):
         target = random.random()
@@ -557,6 +624,9 @@ def simulate_maze(rl, numTrials=50, maxIterations=2000, verbose=False,
         #learnerBoid = LearningBoid(25, height / 2.0, 90)
         learnerBoid = LearningBoid(50, 50, 90)
 
+        if not qlearn:
+            learnerBoid = Boid(50, 50)
+
         # Define the start state that will be passed to our learning algorithm
         state = ((learnerBoid.x, learnerBoid.y, learnerBoid.angle), (leaderBoid.x, leaderBoid.y, 0), leaderBoid.speed, (width, height))
 
@@ -567,10 +637,13 @@ def simulate_maze(rl, numTrials=50, maxIterations=2000, verbose=False,
         totalReward = 0
         time_steps_following = 0
         for _ in range(maxIterations):
-            # Get the action predicted by the bird learning algorithm
-            action = rl.getAction(state)
-            # Move the learning bird
-            learnerBoid.move(action)
+            if qlearn:
+                # Get the action predicted by the bird learning algorithm
+                action = rl.getAction(state)
+                # Move the learning bird
+                learnerBoid.move(action)
+            else:
+                learnerBoid.move()
 
             # Move the leading bird
             leaderBoid.move()
@@ -579,11 +652,14 @@ def simulate_maze(rl, numTrials=50, maxIterations=2000, verbose=False,
             
             reward1 = reward(state, newState)
 
-            sequence.append(action)
+            if qlearn:
+                sequence.append(action)
             sequence.append(reward)
             sequence.append(newState)
 
-            rl.incorporateFeedback(state, action, reward1, newState)
+
+            if learning:
+                rl.incorporateFeedback(state, action, reward1, newState)
 
             totalReward += totalDiscount * reward1
             if trial % 3 == 0:
@@ -615,19 +691,31 @@ def actions(state):
     #return [None, -45, 0, 45, 90, -90, 135, -135, 180]
 
 rl = QLearnBoidObstacles(actions, 0.05, followLeaderBoidFeatureExtractorObstacles, obstacles)
-results, following = simulate_maze(rl)
-print following
-rl.printWeights()
+if False:
+    results, following = simulate_maze(rl)
+    print following
+    rl.printWeights()
+else:
+    rl.weights = {'too-close': 1.4091332158627652, 'distance': -210.27940631153584, 'distance-delta': -43.32266379857211, 'very_nearby': -1007.8269221679548}
+
 #total_rewards = simulate_fixed(rl)
 print "***total rewards for this different simulations***"
 #print total_rewards
 rl.explorationProb = 0
 print "--we got here---"
-os.system('say "your program has finished"')
-os.system('say "you should really switch over to that window"')
-os.system('say "3"')
-os.system('say "2"')
-os.system('say "1"')
 
+# results, following = simulate_maze(rl, numTrials=20, learning=False)
+# results1, following1 = simulate_maze(rl, numTrials=20, learning=False, qlearn=False)
+# print results 
+# print following
+# print'---normal boid---'
+# print results1
+# print following1
+
+# os.system('say "your program has finished"')
+# os.system('say "you should really switch over to that window"')
+# os.system('say "3"')
+# os.system('say "2"')
+# os.system('say "1"')
 test_maze(rl)
    
