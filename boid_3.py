@@ -112,6 +112,7 @@ class Boid:
         self.velocityX = random.randint(1, 10) / 10.0
         self.velocityY = random.randint(1, 10) / 10.0
         self.angle = 90
+        self.name = 'rule'
 
     "Return the distance from another boid"
     def distance(self, boid):
@@ -132,6 +133,7 @@ class Boid:
             return math.degrees(math.atan(self.velocityY/float(self.velocityX))) + 360
         else:
             return  math.degrees(math.atan(self.velocityY/float(self.velocityX)))
+
 
         #return math.degrees(math.atan(self.velocityY/float(self.velocityX)))
 
@@ -218,6 +220,7 @@ class Boid:
         
         self.x += self.velocityX
         self.y += self.velocityY
+        self.angle = self.calcAngle() % 360
 
         # Try wrap around - may need variable width and hieght
         #self.x = (self.x + width) % width
@@ -350,6 +353,7 @@ class LearningBoid(Boid):
         self.speed = speed
         self.angle = angle
         self.direction = [0, 0]
+        self.name = 'follow'
 
     def getXVelocity(self):
         return math.sin(-math.radians(self.angle)) * self.speed
@@ -521,6 +525,17 @@ def test_rl(rl):
         if oldDist >= newDist:
             follow = 1
 
+        # Check to see alignemnt
+        angleBoid = (newState[0][2] + 90) % 360
+        if angleBoid > 180:
+            angleBoid = 180 - (angleBoid % 180)
+        angleLeader = newState[1][2]
+        if angleLeader > 180:
+            angleLeader = 180 - (angleLeader % 180)
+
+        angleDif = math.fabs(angleBoid - angleLeader)
+
+
         # Check we hit the leader
         crash = 0
         if distance(newState[0], newState[1]) < crashdistance - 2:
@@ -528,10 +543,10 @@ def test_rl(rl):
 
         # Check if maintained a good follow distance (i.e. stayed within 7 units of leader)
         stay_follow = 0
-        if distance(newState[0], newState[1]) > crashdistance - 10 and distance(newState[0], newState[1]) <= crashdistance + 10:
+        if distance(newState[0], newState[1]) > crashdistance - 2 and distance(newState[0], newState[1]) <= crashdistance + 10:
             stay_follow = 1
 
-        return (follow, crash, stay_follow)
+        return (follow, crash, stay_follow, angleDif)
     # Super simple test right now with one leader and one 
     # follower controlled by the rl algorithm
     screen = pygame.display.set_mode(size)
@@ -551,7 +566,9 @@ def test_rl(rl):
     #learnedBoids.append(LearningBoid(450, 300, 90))
     #learnedBoids.append(LearningBoid(350, 310, 90))
     #learnedBoids.append(LearningBoid(575, 350, 90))
-    learnedBoids.append(LearningBoid(550, 400, 90))
+    #learnedBoids.append(LearningBoid(550, 400, 90))
+
+    learnedBoids.append(Boid(550, 400))
 
     #learnedBoids.append(Boid(550, 400))
     # Set weights
@@ -571,10 +588,11 @@ def test_rl(rl):
     num_good_step = 0
     num_crash = 0
     num_follow_close = 0
+    angleDif = 0
     while 1:
         print trail
-        if trail == 5000:
-            print 'Steps: %f, good_follows: %f, crashes: %f, close_follows: %f' %(trail, num_good_step, num_crash, num_follow_close)
+        if trail == 4999:
+            print 'Steps: %f, good_follows: %f, crashes: %f, close_follows: %f, avg_angle: %f' %(trail, num_good_step, num_crash, num_follow_close, angleDif / float(5000))
             sys.exit()
         for event in pygame.event.get():
             if event.type == pygame.QUIT or trail == 1000: 
@@ -589,17 +607,17 @@ def test_rl(rl):
         # Move the followers
         for i in range(len(learnedBoids)):
             # Do for learned
-            action = rl.getAction(states[i])
-            learnedBoids[i].move(action)
+            #action = rl.getAction(states[i])
+            #learnedBoids[i].move(action)
 
             # Do for rule based
-            '''
+            
             closeBoids = [leaderBoid]
             learnedBoids[i].moveCloser(closeBoids)
             learnedBoids[i].moveWith(closeBoids)  
             learnedBoids[i].moveAway(closeBoids, 30)
             learnedBoids[i].move()
-            '''
+            
         
         #action = rl.getAction(state)
         #action2 = rl.getAction(state2)
@@ -607,9 +625,11 @@ def test_rl(rl):
         #learnerBoid2.move(action2)
 
         newState = ((learnedBoids[0].x, learnedBoids[0].y, learnedBoids[0].angle), (leaderBoid.x, leaderBoid.y, leaderBoid.angle), leaderBoid.speed, (width, height))
-        step, crash, follow = isfollowing(states[0], newState)
+        step, crash, follow, angle = isfollowing(states[0], newState)
+        #print angle
         num_good_step += step
         num_crash += crash
+        angleDif += angle
         num_follow_close += follow
 
         # Calculate the new states
@@ -698,6 +718,8 @@ def calcAllignment(flock, rule=False):
             tallyAngle += angle
         else:
             angle = boid.angle % 360
+            if boid.name == 'follow':
+                angle = (boid.angle + 90) % 360
             #if angle > 180:
                 #angle = 180 - (angle % 180)
             tallyAngle += angle
@@ -716,6 +738,8 @@ def calcAllignment(flock, rule=False):
             distanceTally += (math.fabs(angle - centerAngle))
         else:
             angle = boid.angle % 360
+            if boid.name == 'follow':
+                angle = (boid.angle + 90) % 360
             if angle > 180:
                 angle = 180 - (angle % 180)
             distanceTally += (math.fabs(angle - centerAngle))
@@ -808,6 +832,7 @@ def test_flock(flock, follow, flock_size):
             flock_birds[i].moveAway(closeBoids, 30)
             flock_birds[i].move()
             '''
+            
 
 
         follow_state = ((follow_leader.x, follow_leader.y, follow_leader.angle), (leaderBoid.x, leaderBoid.y, leaderBoid.angle), leaderBoid.speed, (width, height))
@@ -830,21 +855,25 @@ def test_flock(flock, follow, flock_size):
         
         # Lets do the cohesion of the flocking birds
         if trail % 10 == 0:
-            cohesion += calcCohesion(flock_birds)
-            separation += calcSeparation(flock_birds)
+            all_birds = copy.deepcopy(flock_birds)
+            all_birds.append(follow_leader)
+            cohesion += calcCohesion(all_birds)
+            separation += calcSeparation(all_birds)
             # rule
             #alignment += calcAllignment(flock_birds, True)
-            #print calcAllignment(flock_birds, True)
+            #alignment += calcAllignment(all_birds, True)
             # leanred
-            alignment += calcAllignment(flock_birds)
+            alignment += calcAllignment(all_birds)
 
 
         
         # Move rule based boids
-        #rule_based.moveCloser(closeBoids)
-        #rule_based.moveWith(closeBoids)  
-        #rule_based.moveAway(closeBoids, 30)
-        #rule_based.move()
+        '''
+        rule_based.moveCloser(closeBoids)
+        rule_based.moveWith(closeBoids)  
+        rule_based.moveAway(closeBoids, 30)
+        rule_based.move()
+        '''
         '''
         
         
@@ -853,6 +882,7 @@ def test_flock(flock, follow, flock_size):
         # Draw the boids
         # Draw the leader
         '''
+        
         lead_rotated = pygame.transform.rotate(lead, leaderBoid.angle)
         boidRect = lead_rotated.get_rect()
         #boidRect = pygame.Rect(lead_rotated)
@@ -891,6 +921,7 @@ def test_flock(flock, follow, flock_size):
         
         pygame.display.flip()
         
+        
         #pygame.time.delay(1)
         
         trail += 1
@@ -900,7 +931,7 @@ def test_flock(flock, follow, flock_size):
 # RL algorithm according to the dynamics of the MDP.
 # Each trial will run for at most |maxIterations|.
 # Return the list of rewards that we get for each trial.
-def simulate_flock(flock_rl, follow_leader, numTrials=20, maxIterations=1000, verbose=False):
+def simulate_flock(flock_rl, follow_leader, numTrials=40, maxIterations=1000, verbose=False):
 
     # Have to redefine this for flocking
     def isfollowing(state):
@@ -959,9 +990,9 @@ def simulate_flock(flock_rl, follow_leader, numTrials=20, maxIterations=1000, ve
             #reward = -200 / float(close_birds[0])
             reward = -20
             # Two CLOSE birds!!!
-            #if len(close_birds) > 1:
+            if len(close_birds) > 1:
                 #reward -= 200 / float(close_birds[1])
-                #reward *= 2
+                reward *= 2
             return reward
 
         
@@ -970,7 +1001,8 @@ def simulate_flock(flock_rl, follow_leader, numTrials=20, maxIterations=1000, ve
         #updated_dist_center = distance((update_boid.x, update_boid.y), centroid)
         #if dist_leader < 50:
         if updated_dist_center <= dist_center:
-            reward += 1 + math.fabs(updated_dist_center - dist_center)
+            #reward += 1 + math.fabs(updated_dist_center - dist_center)
+            reward += 2
         else:
             reward += 0
 
@@ -979,12 +1011,15 @@ def simulate_flock(flock_rl, follow_leader, numTrials=20, maxIterations=1000, ve
         #updated_distance = distanceObj(update_boid, leader)
         #if dist_leader >= 50:
         if dist_leader >= updated_distance:
-            reward += 5 + 3 * math.fabs(updated_distance - dist_leader)
+            #reward += 5 + 3 * math.fabs(updated_distance - dist_leader)
             #reward += 10
+            #reward += 3 + math.fabs(updated_distance - dist_leader)
+            reward += 5
             #reward += 100
         else:
-            reward -= 2 - 2 * math.fabs(updated_distance - dist_leader)
-            #reward -= 5 
+            #reward -= 2 - 2 * math.fabs(updated_distance - dist_leader)
+            #reward -= 1 + math.fabs(updated_distance - dist_leader)
+            reward -= 1
             #reward -= 5
 
 
@@ -1331,9 +1366,9 @@ def actions2(state):
 
 rl = QLearnBoid(actions, 0.05, followLeaderBoidFeatureExtractorV2)
 #results, following = simulate(rl)
-#rl.weights = {'too-close': -277.2738533630285, 'distance': -61.99941592542029, 'distance-delta': -2.703749051497212}
+rl.weights = {'too-close': -277.2738533630285, 'distance': -61.99941592542029, 'distance-delta': -2.703749051497212}
 # Weights for follow with d = 30
-rl.weights = {'too-close': -309, 'distance': -94, 'distance-delta': -4.5}
+#rl.weights = {'too-close': -309, 'distance': -94, 'distance-delta': -4.5}
 #print following
 #rl.printWeights()
 #total_rewards = simulate_fixed(rl)
@@ -1344,10 +1379,12 @@ rl.weights = {'too-close': -309, 'distance': -94, 'distance-delta': -4.5}
 #test_rl(rl)
 
 # Try different values of discount - .35 is good
-flock = QLearnBoid(actions, 0.5, threeBirdFlock)
+flock = QLearnBoid(actions, 0.75, threeBirdFlock)
 #flock.weights = {"num-close": -5, "leader-delta": -9, "closest": -600, "second": -600, "centroid": -3}
-results, following = simulate_flock(flock, rl)
-flock.printWeights()
+flock.weights = {'second': -0.14181028188612427, 'centroid': -2.1985595087720595, 'leader-delta': -4.969069152844312, 'closest': -0.3197114571880562}
+#flock.weights = {'closest': -1.6074539359345943, 'second': -2.33042753226273, 'centroid': -1.415118694899296, 'leader-delta': -6.890677029638463}
+#results, following = simulate_flock(flock, rl)
+#flock.printWeights()
 #flock.weights = {"num-close": -5, "leader-delta": -9, "closest": -600, "second": -600, "centroid": -3}
 #flock.weights = {'num-close': -194.56696867753752, 'second': -46.0414842003419, 'centroid': -85.70090960847638, 'leader-delta': 47.346239400205164, 'closest': -150.9097418891571}
 #flock.weights = {'num-close': 5.091556643054558, 'second': -0.023930798504836134, 'centroid': -0.6919207067486197, 'leader-delta': -2.5160067808901267, 'closest': -0.011987485524575334}

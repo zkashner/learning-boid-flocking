@@ -97,6 +97,14 @@ Steps: 5000.000000, good_follows: 2705.000000, crashes: 59.000000, close_follows
 Learned
 2590.000000, crashes: 109.000000, close_follows: 4873.000000
 
+crash is 28
+learned
+good_follows: 2592.000000, crashes: 90.000000, close_follows: 4824.000000, avg_angle: 24.109041
+rule
+good_follows: 2727.000000, crashes: 52.000000, close_follows: 3932.000000, avg_angle: 25.958349
+
+
+
 
 5000 time steps - every ten steps take measurement
 learned 
@@ -110,3 +118,25 @@ learned
 Avg separation: 0.070000, Avg cohestion: 55.505752, Avg alignment: 64.834560
 Rule based
 Avg separation: 0.538000, Avg cohestion: 50.838240, Avg alignment: 177.186870
+
+
+weights for flocking: 
+train 20 trails - 1000 iterations per
+{'second': -0.14181028188612427, 'centroid': -2.1985595087720595, 'leader-delta': -4.969069152844312, 'closest': -0.3197114571880562})
+11005.8041174}
+
+1 bird flock with follow leader
+Avg separation: 0.000000, Avg cohestion: 22.011608, Avg alignment: 24.582000
+
+rule based
+62?
+Avg separation: 0.000000, Avg cohestion: 24.982342, Avg alignment: 20.368366
+
+15 bird flock 
+explore = 0
+Avg separation: 0.176000, Avg cohestion: 67.774328, Avg alignment: 47.603984
+
+explore = .2
+Avg separation: 0.164000, Avg cohestion: 54.768549, Avg alignment: 55.463938
+
+
