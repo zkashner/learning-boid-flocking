@@ -29,8 +29,11 @@ The code contained in this repository is broken into two parts, with a lot of re
 ### Flocking Behavior
 In order to run the code around this call `python boid_3.py`. Additionally, make sure that the packages in the header are imported. This can all be done using `pip`
 
-## Obstacle Manipulation
+### Obstacle Manipulation
 In order to run the boid through a maze call `python boid_obstacle.py`. For this, if you wish to train the weights of the Q-learned function approximation yourself, you can change the boolean at the bottom of the file to `True` and rather than using the weights we found, can determine these weights on your own.
 
-## Reports
+### Reports
 We have also included both the poster as well as the written report summarizing our findings from applying Q-learning to the boid problem.
+
+## CS221
+CS221 is a class at Stanford University taught by Dr. Dorsa Sadigh in the Spring of 2018. We would like to thank both Dr. Sadigh and our TA Zhi Bie for their help during this project.
