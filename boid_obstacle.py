@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 # Boid implementation in Python using PyGame
-# Ben Dowling - www.coderholic.com
 
 import sys, pygame, random, math, os
 import QLearnBoid
